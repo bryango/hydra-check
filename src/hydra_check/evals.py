@@ -52,7 +52,7 @@ def parse_jobset_html(data: str) -> Iterator[EvalStatus]:
     if tbody := doc.find("tbody"):
         if isinstance(tbody, element.Tag):
             for row in tbody.find_all("tr"):
-                eval_id, timestamp, input_changes, built, failed, pending, delta = (
+                eval_id, timestamp, input_changes, succeeded, failed, queued, delta = (
                     row.find_all("td")
                 )
 
@@ -63,17 +63,17 @@ def parse_jobset_html(data: str) -> Iterator[EvalStatus]:
                 relative = timestamp.find("time").text
                 timestamp = timestamp.find("time")["data-timestamp"]
 
-                status = input_changes.find("span").string
+                status = getattr(input_changes.find("span"), "string", "")
                 short_rev = input_changes.find("tt").string
-                input_changes.find("span").clear()
+                getattr(input_changes.find("span"), "clear", lambda: ())()
                 input_changes = " ".join(input_changes.text.strip().split())
 
-                built = built.text.strip()
+                succeeded = succeeded.text.strip()
                 failed = failed.text.strip()
-                pending = pending.text.strip()
+                queued = queued.text.strip()
                 delta = delta.text.strip()
 
-                finished = pending == ""
+                finished = queued == ""
                 icon = "✔" if finished else "⧖"
                 yield {
                     "icon": icon,
@@ -86,26 +86,34 @@ def parse_jobset_html(data: str) -> Iterator[EvalStatus]:
                     "status": status,
                     "short_rev": short_rev,
                     "input_changes": input_changes,
-                    "built": int(built) if built else 0,
+                    "succeeded": int(succeeded) if succeeded else 0,
                     "failed": int(failed) if failed else 0,
-                    "pending": int(pending) if pending else 0,
+                    "queued": int(queued) if queued else 0,
                     "delta": delta,  # str with a + or - sign
                 }
 
 
-def print_jobset_eval(evaluation: EvalStatus) -> None:
-    match evaluation["icon"]:
+def print_jobset_eval(e: EvalStatus) -> None:
+    match e["icon"]:
         case "✖":
-            print(Fore.RED, end="")
+            entry_color = Fore.RED
         case "⚠" | "⧖":
-            print(Fore.YELLOW, end="")
+            entry_color = Fore.YELLOW
         case "✔":
-            print(Fore.GREEN, end="")
-    if "built" in evaluation:
-        extra = f" ({evaluation['status']})"
+            entry_color = Fore.GREEN
+    print(entry_color, end="")
+    if "id" in e:
+        queued = f"? {e['queued']}"
+        if e["queued"] != 0:
+            queued = f"{Fore.YELLOW}{queued}{entry_color}"
+
+        delta = f"Δ {e['delta']}"
+        if isinstance(e["delta"], str) and e["delta"].startswith("-"):
+            delta = f"{Fore.RED}{delta}{entry_color}"
         print(
-            f"{evaluation['icon']}{extra} {evaluation['delta']} from "
-            f"{str(evaluation['timestamp']).split('T', maxsplit=1)[0]} - {evaluation['url']}",
+            f"{e['icon']} {e['input_changes']} from {e['relative']:10}"
+            f"  ✔ {e['succeeded']} ✖ {e['failed']} {queued} {delta}"
+            f"  {e['url']}",
         )
     else:
-        print(f"{evaluation['icon']} {evaluation['status']}")
+        print(f"{e['icon']} {e['status']}")

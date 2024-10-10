@@ -159,8 +159,23 @@ def main() -> None:
         import hydra_check.evals as evals
 
         resp = evals.fetch_data(jobset, evals.get_evals)
-        evals = list(evals.parse_jobset_html(resp))
-        print(json.dumps(evals))
+        all_evals = list(evals.parse_jobset_html(resp))
+        evals_url = evals.get_evals(jobset)
+
+        print(
+            f"Evaluations of jobset {jobset.replace("/", ":")} @ {evals_url}",
+            file=sys.stderr,
+            end="\n\n",
+        )
+
+        if as_json:
+            print(json.dumps(all_evals))
+        elif only_url:
+            print(evals_url)
+            sys.exit()
+        else:
+            for evaluation in all_evals:
+                evals.print_jobset_eval(evaluation)
 
     for package in packages:
         if package.startswith("python3Packages") or package.startswith("python3.pkgs"):
