@@ -154,6 +154,29 @@ def main() -> None:
     as_json = args.json
     all_builds = {}
 
+    if not packages:
+        import hydra_check.evals as evals
+
+        evals_url = evals.get_evals(jobset)
+        if only_url:
+            print(evals_url)
+            sys.exit()
+
+        print(
+            f"Evaluations of jobset {jobset.replace("/", ":")} @ {evals_url}",
+            file=sys.stderr,
+            end="\n\n",
+        )
+
+        resp = evals.fetch_data(jobset, evals.get_evals)
+        all_evals = list(evals.parse_jobset_html(resp))
+
+        if as_json:
+            print(json.dumps(all_evals))
+        else:
+            for evaluation in all_evals:
+                evals.print_jobset_eval(evaluation)
+
     for package in packages:
         if package.startswith("python3Packages") or package.startswith("python3.pkgs"):
             logging.error("instead of '%s', you want python3XPackages... (replace X)", package)
