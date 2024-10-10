@@ -154,6 +154,14 @@ def main() -> None:
     as_json = args.json
     all_builds = {}
 
+    if not packages:
+        # print("check eval status")
+        import hydra_check.evals as evals
+
+        resp = evals.fetch_data(jobset, evals.get_evals)
+        evals = list(evals.parse_build_html(resp))
+        print(json.dumps(evals))
+
     for package in packages:
         if package.startswith("python3Packages") or package.startswith("python3.pkgs"):
             logging.error("instead of '%s', you want python3XPackages... (replace X)", package)

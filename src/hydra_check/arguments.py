@@ -28,7 +28,7 @@ def process_args() -> argparse.Namespace:
     parser.add_argument(
         "PACKAGES",
         action="extend",
-        nargs="+",
+        nargs="*",
         type=str,
     )
     parser.add_argument(
@@ -62,4 +62,9 @@ def process_args() -> argparse.Namespace:
         default="",
         help="Jobset to check packages for",
     )
+    # parser.add_argument(
+    #     "--eval",
+    #     default="",
+    #     help="print information about a specific evaluation",
+    # )
     return parser.parse_args()
