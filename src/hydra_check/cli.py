@@ -159,7 +159,7 @@ def main() -> None:
         import hydra_check.evals as evals
 
         resp = evals.fetch_data(jobset, evals.get_evals)
-        evals = list(evals.parse_build_html(resp))
+        evals = list(evals.parse_jobset_html(resp))
         print(json.dumps(evals))
 
     for package in packages:

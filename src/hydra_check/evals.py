@@ -35,7 +35,7 @@ def fetch_data(ident: str, get_url: Callable[[str], str]) -> str:
     return resp.text
 
 
-def parse_build_html(data: str) -> Iterator[EvalStatus]:
+def parse_jobset_html(data: str) -> Iterator[EvalStatus]:
     doc = BeautifulSoup(data, features="html.parser")
     if not doc.find("tbody"):
         # Either the package was not evaluated (due to being unfree)
@@ -93,19 +93,19 @@ def parse_build_html(data: str) -> Iterator[EvalStatus]:
                 }
 
 
-def print_buildreport(build: EvalStatus) -> None:
-    match build["icon"]:
+def print_jobset_eval(evaluation: EvalStatus) -> None:
+    match evaluation["icon"]:
         case "✖":
             print(Fore.RED, end="")
         case "⚠" | "⧖":
             print(Fore.YELLOW, end="")
         case "✔":
             print(Fore.GREEN, end="")
-    if "built" in build:
-        extra = f" ({build['status']})"
+    if "built" in evaluation:
+        extra = f" ({evaluation['status']})"
         print(
-            f"{build['icon']}{extra} {build['delta']} from "
-            f"{str(build['timestamp']).split('T', maxsplit=1)[0]} - {build['url']}",
+            f"{evaluation['icon']}{extra} {evaluation['delta']} from "
+            f"{str(evaluation['timestamp']).split('T', maxsplit=1)[0]} - {evaluation['url']}",
         )
     else:
-        print(f"{build['icon']} {build['status']}")
+        print(f"{evaluation['icon']} {evaluation['status']}")
