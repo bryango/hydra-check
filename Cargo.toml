@@ -1,0 +1,8 @@
+[package]
+name = "hydra-check"
+version = "2.0.0"
+edition = "2021"
+
+[dependencies]
+clap = { version = "4.5.20", features = ["derive"] }
+scraper = "0.20.0"
