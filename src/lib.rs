@@ -1,7 +1,9 @@
 mod args;
+mod fetch_stable;
 mod soup;
 
 pub use args::Args;
+pub use fetch_stable::NixpkgsChannelVersion;
 pub use soup::SoupFind;
 
 pub fn log_format(
