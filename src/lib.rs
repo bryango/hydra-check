@@ -1,4 +1,8 @@
-pub mod args;
+mod args;
+mod soup;
+
+pub use args::Args;
+pub use soup::SoupFind;
 
 pub fn log_format(
     w: &mut dyn std::io::Write,
