@@ -332,6 +332,7 @@ dependencies = [
  "clap",
  "flexi_logger",
  "log",
+ "regex",
  "scraper",
 ]
 

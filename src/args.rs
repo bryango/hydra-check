@@ -1,6 +1,10 @@
 use clap::{arg, command, Parser};
 use log::info;
-use std::env::consts::{ARCH, OS};
+use regex::Regex;
+use std::{
+    env::consts::{ARCH, OS},
+    path::Path,
+};
 
 #[derive(Parser, Debug)]
 #[command(author, version, verbatim_doc_comment)]
@@ -8,10 +12,10 @@ use std::env::consts::{ARCH, OS};
 /// Check hydra.nixos.org for build status of packages
 ///
 /// Other channels can be:
-///   - unstable  - alias for nixos/trunk-combined (Default for Linux architectures)
-///   - master    - alias for nixpkgs/trunk (Default for Darwin architectures)
-///   - staging   - alias for nixos/staging
-///   - 24.05     - alias for nixos/release-24.05
+///   - unstable      - alias for nixos/trunk-combined (Default for Linux architectures)
+///   - master        - alias for nixpkgs/trunk (Default for Darwin architectures)
+///   - staging-next  - alias for nixpkgs/staging-next
+///   - 24.05         - alias for nixos/release-24.05
 ///
 /// Usually using the above as --channel arguments, should fit most usages.
 /// However, you can use a verbatim jobset name such as:
@@ -74,17 +78,21 @@ impl Args {
         if self.jobset.is_some() {
             return self;
         }
+        // https://wiki.nixos.org/wiki/Channel_branches
+        // https://github.com/NixOS/infra/blob/master/channels.nix
         let jobset: String = match self.channel.as_str() {
-            "unstable" => match self.arch.clone().is_some_and(|x| x.ends_with("darwin")) {
-                true => "nixpkgs/trunk".into(),
-                false => "nixos/trunk-combined".into(),
+            "unstable" => match self.arch.clone() {
+                // darwin
+                Some(x) if x.ends_with("darwin") => "nixpkgs/trunk".into(),
+                // NixOS
+                _ if Path::new("/etc/NIXOS").exists() => "nixos/trunk-combined".into(),
+                // others
+                _ => "nixpkgs/trunk".into(),
             },
             "master" => "nixpkgs/trunk".into(),
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
-            _ => match self.channel.chars().next().is_some_and(|x| x.is_numeric()) {
-                true => format!("nixos/release-{}", self.channel),
-                false => self.channel.clone(),
-            },
+            x if Regex::new(r"[0-9]+\.[0-9]+").unwrap().is_match(x) => format!("nixos/release-{x}"),
+            _ => self.channel.clone(),
         };
         info!("'--channel {}' implies '--jobset {}'", self.channel, jobset);
         Self {
