@@ -5,6 +5,8 @@ use std::{
     path::Path,
 };
 
+use crate::NixpkgsChannelVersion;
+
 #[derive(Parser, Debug)]
 #[command(author, version, verbatim_doc_comment)]
 ///
@@ -87,6 +89,15 @@ impl Args {
                 // others
                 _ => "nixpkgs/trunk".into(),
             },
+            "stable" => {
+                let ver = NixpkgsChannelVersion::stable().expect("could not fetch the stable release version number, please specify '--channel' or '--jobset' explicitly");
+                match self.arch.clone() {
+                    // darwin
+                    Some(x) if x.ends_with("darwin") => format!("nixpkgs/nixpkgs-{ver}-darwin"),
+                    // others
+                    _ => format!("nixos/release-{ver}"),
+                }
+            }
             "master" => "nixpkgs/trunk".into(),
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
             _ => match self.channel.chars().next().is_some_and(|x| x.is_numeric()) {
