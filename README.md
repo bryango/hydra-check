@@ -100,3 +100,16 @@ $ hydra-check nixos.containerTarball hello --channel 19.09 --arch i686-linux --j
 }
 
 ```
+
+# Breaking changes
+
+## 2.0.0
+- Rewritten in Rust
+- `--arch` defaults to the target architecture (instead of `x86_64-linux` all the time)
+- `--jobset` explicitly conflicts with `--channel` to avoid confusion, as channels are just jobset aliases
+- The `staging` channel / alias is removed as `nixos/staging` is no longer active; instead we add `staging-next` as an alias for `nixpkgs/staging-next`
+- The default `unstable` channel points to `nixpkgs/trunk` on non-NixOS systems
+
+### Features
+- Add an `--eval` flag for information about a specific evaluation
+- When no package is specified, print a list of evaluations for the jobset
