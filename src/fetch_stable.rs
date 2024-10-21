@@ -55,6 +55,7 @@ impl NixpkgsChannelVersion {
 }
 
 #[test]
+#[ignore = "require internet connection"]
 fn fetch_stable() -> anyhow::Result<()> {
     println!(
         "latest stable version: {}",

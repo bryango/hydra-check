@@ -1,5 +1,5 @@
 use clap::{arg, command, Parser};
-use log::info;
+use log::{error, info};
 use regex::Regex;
 use std::{
     env::consts::{ARCH, OS},
@@ -82,24 +82,28 @@ impl Args {
         }
         // https://wiki.nixos.org/wiki/Channel_branches
         // https://github.com/NixOS/infra/blob/master/channels.nix
+        let (trunk, combined) = ("nixpkgs/trunk", "nixos/trunk-combined");
         let jobset: String = match self.channel.as_str() {
-            "unstable" => match self.arch.clone() {
-                // darwin
-                Some(x) if x.ends_with("darwin") => "nixpkgs/trunk".into(),
-                // NixOS
-                _ if Path::new("/etc/NIXOS").exists() => "nixos/trunk-combined".into(),
-                // others
-                _ => "nixpkgs/trunk".into(),
+            "master" | "nixpkgs-unstable" => trunk.into(),
+            "nixos-unstable" => combined.into(),
+            "nixos-unstable-small" => "nixos/unstable-small".into(),
+            "unstable" => match Path::new("/etc/NIXOS").exists() {
+                true => combined.into(), // NixOS
+                false => trunk.into(),   // others
             },
             "stable" => {
-                let ver = NixpkgsChannelVersion::stable().expect(
-                    [
-                        "could not fetch the stable release version number, ",
-                        "please specify '--channel' or '--jobset' explicitly",
-                    ]
-                    .concat()
-                    .as_str(),
-                );
+                let ver = match NixpkgsChannelVersion::stable() {
+                    Ok(version) => version,
+                    Err(err) => {
+                        error!(
+                            "{}, {}.\n\n{}",
+                            "could not fetch the stable release version number",
+                            "please specify '--channel' or '--jobset' explicitly",
+                            err
+                        );
+                        std::process::exit(1);
+                    }
+                };
                 match self.arch.clone() {
                     // darwin
                     Some(x) if x.ends_with("darwin") => format!("nixpkgs/nixpkgs-{ver}-darwin"),
@@ -107,9 +111,16 @@ impl Args {
                     _ => format!("nixos/release-{ver}"),
                 }
             }
-            "master" => "nixpkgs/trunk".into(),
             x if x.starts_with("staging-next") => format!("nixpkgs/{x}"),
-            x if Regex::new(r"[0-9]+\.[0-9]+").unwrap().is_match(x) => format!("nixos/release-{x}"),
+            x if Regex::new(r"^[0-9]+\.[0-9]+$").unwrap().is_match(x) => {
+                format!("nixos/release-{x}")
+            }
+            x if Regex::new(r"^nixos-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
+                x.replacen("nixos", "nixos/release", 1)
+            }
+            x if Regex::new(r"^nixpkgs-[0-9]+\.[0-9]+").unwrap().is_match(x) => {
+                x.replacen("nixpkgs", "nixpkgs/nixpkgs", 1)
+            }
             _ => self.channel.clone(),
         };
         info!("'--channel {}' implies '--jobset {}'", self.channel, jobset);
@@ -129,6 +140,21 @@ impl Args {
 
 #[test]
 fn guess_jobset() {
-    let args = Args::parse_from(["hydra-check", "--channel", "24.05"]).guess_jobset();
-    debug_assert_eq!(args.jobset, Some("nixos/release-24.05".into()))
+    let aliases = [
+        ("24.05", "nixos/release-24.05"),
+        ("nixos-23.05", "nixos/release-23.05"),
+        ("nixos-23.11-small", "nixos/release-23.11-small"),
+    ];
+    for (channel, jobset) in aliases {
+        eprintln!("{channel} => {jobset}");
+        let args = Args::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
+        debug_assert_eq!(args.jobset, Some(jobset.into()))
+    }
+}
+
+#[test]
+#[ignore = "require internet connection"]
+fn guess_stable() {
+    let args = Args::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
+    eprintln!("{:?}", args.jobset)
 }

@@ -114,3 +114,4 @@ $ hydra-check nixos.containerTarball hello --channel 19.09 --arch i686-linux --j
 - Infer the current stable Nixpkgs release (e.g. `24.05`) with a hack
 - Add an `--eval` flag for information about a specific evaluation
 - When no package is specified, print a list of evaluations for the jobset
+- Support standard channel names
