@@ -22,7 +22,7 @@ use crate::{constants, NixpkgsChannelVersion};
 /// Usually using the above as --channel arguments, should fit most usages.
 /// However, you can use a verbatim jobset name such as:
 ///
-///     nixpkgs/nixpkgs-24.05-darwin
+///   nixpkgs/nixpkgs-24.05-darwin
 ///
 /// Jobset names can be constructed with the project name (e.g. `nixos/` or `nixpkgs/`)
 /// followed by a branch name. The available jobsets can be found at:
@@ -74,7 +74,11 @@ impl Args {
             }
         };
         if let Some(arch) = self.arch.clone() {
-            warn_if_unknown(&arch);
+            // allow empty `--arch` as it may be the user's intention to
+            // specify architectures explicitly for each package
+            if !arch.is_empty() {
+                warn_if_unknown(&arch);
+            }
             return self;
         }
         let arch = format!("{}-{}", ARCH, OS);
@@ -140,8 +144,58 @@ impl Args {
         }
     }
 
+    fn guess_package_name(&self, package: &str) -> String {
+        let has_known_arch_suffix = constants::KNOWN_ARCHITECTURES
+            .iter()
+            .any(|known_arch| package.ends_with(format!(".{known_arch}").as_str()));
+
+        let warn_unknown_arch = || -> String {
+            warn!(
+                "unknown architecture for package {package}, {}, {}, {}.",
+                "consider specifying an arch suffix explicitly",
+                "such as 'gimp.x86_64-linux'",
+                "or provide a non-empty '--arch'"
+            );
+            "".into()
+        };
+
+        let arch_suffix = match self.arch.clone() {
+            _ if has_known_arch_suffix => "".into(),
+            None => warn_unknown_arch(),
+            Some(arch) if arch.is_empty() => warn_unknown_arch(),
+            Some(arch) => format!(".{arch}"),
+        };
+
+        if package.starts_with("nixpkgs.") || package.starts_with("nixos.") {
+            // we assume the user knows the full package name
+            return format!("{package}{arch_suffix}");
+        }
+
+        if self.jobset.clone().is_some_and(|x| x.starts_with("nixos/")) {
+            // we assume that the user searches for a package and not a test
+            return format!("nixpkgs.{package}{arch_suffix}");
+        }
+
+        format!("{package}{arch_suffix}")
+    }
+
     fn guess_packages(self) -> Self {
-        todo!()
+        let packages = self
+            .packages
+            .iter()
+            .filter_map(|package| {
+                if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
+                    error!(
+                        "instead of '{package}', you want {}",
+                        "python3xPackages... (e.g. python311Packages)"
+                    );
+                    None
+                } else {
+                    Some(self.guess_package_name(&package))
+                }
+            })
+            .collect();
+        Self { packages, ..self }
     }
 
     pub fn parse_and_guess() -> Self {
