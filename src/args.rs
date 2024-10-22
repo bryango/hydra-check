@@ -1,4 +1,5 @@
 use clap::{arg, command, Parser};
+use flexi_logger::Logger;
 use log::{error, info, warn};
 use regex::Regex;
 use std::{
@@ -6,7 +7,7 @@ use std::{
     path::Path,
 };
 
-use crate::{constants, NixpkgsChannelVersion};
+use crate::{constants, log_format, NixpkgsChannelVersion};
 
 #[derive(Parser, Debug)]
 #[command(author, version, verbatim_doc_comment)]
@@ -60,6 +61,10 @@ pub struct Args {
     /// Print information about a specific evaluation
     #[arg(short, long)]
     eval: Option<String>,
+
+    /// Print only essential outputs
+    #[arg(short, long)]
+    quiet: bool,
 }
 
 impl Args {
@@ -198,12 +203,17 @@ impl Args {
         Self { packages, ..self }
     }
 
-    pub fn parse_and_guess() -> Self {
+    pub fn parse_and_guess() -> anyhow::Result<Self> {
         let args = Self::parse();
+        let log_level = match args.quiet {
+            true => log::LevelFilter::Warn,
+            false => log::LevelFilter::Info,
+        };
+        Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
         let args = args.guess_packages();
-        args
+        Ok(args)
     }
 }
 
