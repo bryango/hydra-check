@@ -1,12 +1,12 @@
 use clap::{arg, command, Parser};
-use log::{error, info};
+use log::{error, info, warn};
 use regex::Regex;
 use std::{
     env::consts::{ARCH, OS},
     path::Path,
 };
 
-use crate::NixpkgsChannelVersion;
+use crate::{constants, NixpkgsChannelVersion};
 
 #[derive(Parser, Debug)]
 #[command(author, version, verbatim_doc_comment)]
@@ -14,8 +14,8 @@ use crate::NixpkgsChannelVersion;
 /// Check hydra.nixos.org for build status of packages
 ///
 /// Other channels can be:
-///   - unstable      - alias for nixos/trunk-combined (Default for Linux architectures)
-///   - master        - alias for nixpkgs/trunk (Default for Darwin architectures)
+///   - unstable      - alias for nixos/trunk-combined (for NixOS) or nixpkgs/trunk
+///   - master        - alias for nixpkgs/trunk (Default for other architectures)
 ///   - staging-next  - alias for nixpkgs/staging-next
 ///   - 24.05         - alias for nixos/release-24.05
 ///
@@ -64,12 +64,22 @@ pub struct Args {
 
 impl Args {
     fn guess_arch(self) -> Self {
-        if self.arch.is_some() {
+        let warn_if_unknown = |arch: &str| {
+            if !Vec::from(constants::KNOWN_ARCHITECTURES).contains(&arch) {
+                warn!(
+                    "unknown '--arch {arch}', {}: {:?}",
+                    "consider specify one of the following known architectures",
+                    constants::KNOWN_ARCHITECTURES
+                );
+            }
+        };
+        if let Some(arch) = self.arch.clone() {
+            warn_if_unknown(&arch);
             return self;
         }
         let arch = format!("{}-{}", ARCH, OS);
         info!("assuming '--arch {arch}'");
-        // TODO: warn unknown arch
+        warn_if_unknown(&arch);
         Self {
             arch: Some(arch),
             ..self
