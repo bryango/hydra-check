@@ -1,5 +1,10 @@
 use std::fmt::Display;
 
+use serde::Serialize;
+use serde_with::{skip_serializing_none, SerializeDisplay};
+
+#[skip_serializing_none]
+#[derive(Serialize, Debug)]
 struct BuildStatus {
     icon: StatusIcon,
     success: bool,
@@ -12,6 +17,7 @@ struct BuildStatus {
     evals: bool,
 }
 
+#[derive(SerializeDisplay, Debug, Clone)]
 enum StatusIcon {
     Success,
     Failure,
@@ -27,4 +33,10 @@ impl Display for StatusIcon {
         };
         write!(f, "{icon}")
     }
+}
+
+#[test]
+fn serialize_success_icon() {
+    let success_icon = serde_json::to_string(&StatusIcon::Success).unwrap();
+    debug_assert_eq!(success_icon, r#""✔""#)
 }
