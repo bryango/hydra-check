@@ -4,6 +4,7 @@ mod fetch_stable;
 mod soup;
 
 pub use args::Args;
+use colored::Colorize;
 pub use fetch_stable::NixpkgsChannelVersion;
 pub use soup::SoupFind;
 
@@ -12,10 +13,12 @@ pub fn log_format(
     _now: &mut flexi_logger::DeferredNow,
     record: &log::Record,
 ) -> Result<(), std::io::Error> {
-    write!(
-        w,
-        "{}: {}",
-        record.level().as_str().to_lowercase(),
-        &record.args()
-    )
+    let level = record.level();
+    let color = match level {
+        log::Level::Error => "red",
+        log::Level::Warn => "yellow",
+        _ => "",
+    };
+    let level = format!("{level}:").to_lowercase().color(color).bold();
+    write!(w, "{} {}", level, &record.args())
 }

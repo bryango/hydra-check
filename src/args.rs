@@ -67,7 +67,7 @@ impl Args {
         let warn_if_unknown = |arch: &str| {
             if !Vec::from(constants::KNOWN_ARCHITECTURES).contains(&arch) {
                 warn!(
-                    "unknown '--arch {arch}', {}: {:?}",
+                    "unknown --arch '{arch}', {}: {:#?}",
                     "consider specify one of the following known architectures",
                     constants::KNOWN_ARCHITECTURES
                 );
@@ -78,7 +78,7 @@ impl Args {
             return self;
         }
         let arch = format!("{}-{}", ARCH, OS);
-        info!("assuming '--arch {arch}'");
+        info!("assuming --arch '{arch}'");
         warn_if_unknown(&arch);
         Self {
             arch: Some(arch),
@@ -133,17 +133,22 @@ impl Args {
             }
             _ => self.channel.clone(),
         };
-        info!("'--channel {}' implies '--jobset {}'", self.channel, jobset);
+        info!("--channel '{}' implies --jobset '{}'", self.channel, jobset);
         Self {
             jobset: Some(jobset),
             ..self
         }
     }
 
+    fn guess_packages(self) -> Self {
+        todo!()
+    }
+
     pub fn parse_and_guess() -> Self {
         let args = Self::parse();
         let args = args.guess_arch();
         let args = args.guess_jobset();
+        let args = args.guess_packages();
         args
     }
 }
