@@ -1,6 +1,7 @@
 mod args;
 pub mod constants;
 mod fetch_stable;
+pub mod parse;
 mod soup;
 
 pub use args::Args;
