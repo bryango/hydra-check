@@ -1,15 +1,15 @@
 mod args;
+pub mod build;
 pub mod constants;
 mod fetch_stable;
-pub mod parse;
 mod soup;
 
 pub use args::Args;
 use colored::Colorize;
-pub use fetch_stable::NixpkgsChannelVersion;
+use fetch_stable::NixpkgsChannelVersion;
 pub use soup::SoupFind;
 
-pub fn log_format(
+fn log_format(
     w: &mut dyn std::io::Write,
     _now: &mut flexi_logger::DeferredNow,
     record: &log::Record,

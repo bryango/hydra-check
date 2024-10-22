@@ -11,6 +11,7 @@ use crate::{constants, log_format, NixpkgsChannelVersion};
 
 #[derive(Parser, Debug)]
 #[command(author, version, verbatim_doc_comment)]
+#[allow(rustdoc::bare_urls)]
 ///
 /// Check hydra.nixos.org for build status of packages
 ///
