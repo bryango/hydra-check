@@ -8,8 +8,7 @@ use serde::Deserialize;
 
 use crate::SoupFind;
 
-/// Currently supported Nixpkgs channel version,
-/// obtained from parsing the manual on nixos.org
+/// Currently supported Nixpkgs channel version (e.g. 24.05)
 #[derive(Deserialize, Debug, Clone)]
 pub struct NixpkgsChannelVersion {
     #[serde(rename = "channel")]
@@ -19,7 +18,7 @@ pub struct NixpkgsChannelVersion {
 
 impl NixpkgsChannelVersion {
     fn fetch() -> anyhow::Result<Vec<Self>> {
-        info!("fetching the latest version of Nixpkgs from nixos.org");
+        info!("fetching the latest channel version from nixos.org/manual");
         let html_string = reqwest::blocking::get("https://nixos.org/manual/nixpkgs/stable/")?
             .error_for_status()?
             .text()?;
@@ -47,8 +46,7 @@ impl NixpkgsChannelVersion {
         )
     }
 
-    /// Fetches the current stable version of Nixpkgs,
-    /// from the manual on nixos.org
+    /// Fetches the current stable version number of Nixpkgs
     pub fn stable() -> anyhow::Result<String> {
         Self::fetch_channel("stable")
     }
@@ -56,10 +54,10 @@ impl NixpkgsChannelVersion {
 
 #[test]
 #[ignore = "require internet connection"]
-fn fetch_stable() -> anyhow::Result<()> {
-    println!(
-        "latest stable version: {}",
-        NixpkgsChannelVersion::stable()?
-    );
-    Ok(())
+fn fetch_stable() {
+    let ver = NixpkgsChannelVersion::stable().unwrap();
+    println!("latest stable version: {ver}");
+    debug_assert!(regex::Regex::new(r"^[0-9]+\.[0-9]+")
+        .unwrap()
+        .is_match(&ver))
 }
