@@ -9,7 +9,7 @@ use std::{
 
 use crate::{constants, log_format, NixpkgsChannelVersion};
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default)]
 #[command(author, version, verbatim_doc_comment)]
 #[allow(rustdoc::bare_urls)]
 ///
@@ -65,6 +65,17 @@ pub struct Args {
 
     /// Print only essential outputs
     #[arg(short, long)]
+    quiet: bool,
+}
+
+#[derive(Debug, Default)]
+pub struct ResolvedArgs {
+    packages: Vec<String>,
+    url: bool,
+    json: bool,
+    short: bool,
+    pub(crate) jobset: String,
+    eval: Option<String>,
     quiet: bool,
 }
 
@@ -204,7 +215,7 @@ impl Args {
         Self { packages, ..self }
     }
 
-    pub fn parse_and_guess() -> anyhow::Result<Self> {
+    pub fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
         let args = Self::parse();
         let log_level = match args.quiet {
             true => log::LevelFilter::Warn,
@@ -214,7 +225,17 @@ impl Args {
         let args = args.guess_arch();
         let args = args.guess_jobset();
         let args = args.guess_packages();
-        Ok(args)
+        Ok(ResolvedArgs {
+            packages: args.packages,
+            url: args.url,
+            json: args.json,
+            short: args.short,
+            jobset: args
+                .jobset
+                .expect("jobset should be resolved by `guess_jobset()`"),
+            eval: args.eval,
+            quiet: args.quiet,
+        })
     }
 }
 

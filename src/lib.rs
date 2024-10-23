@@ -5,6 +5,7 @@ mod fetch_stable;
 mod soup;
 
 pub use args::Args;
+use args::ResolvedArgs;
 use colored::Colorize;
 use fetch_stable::NixpkgsChannelVersion;
 pub use soup::SoupFind;
