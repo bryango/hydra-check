@@ -1,30 +1,35 @@
 use std::{fmt::Display, time::Duration};
 
+use anyhow::{anyhow, bail};
+use scraper::Html;
 use serde::Serialize;
 use serde_with::{skip_serializing_none, SerializeDisplay};
 
-use crate::ResolvedArgs;
+use crate::{ResolvedArgs, SoupFind};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
 pub struct BuildStatus {
-    #[serde(skip)]
-    package: String,
-    #[serde(skip)]
-    args: ResolvedArgs,
     icon: StatusIcon,
     success: bool,
     status: String,
-    timestamp: String,
-    build_id: String,
-    build_url: String,
-    name: String,
-    arch: String,
+    timestamp: Option<String>,
+    build_id: Option<String>,
+    build_url: Option<String>,
+    name: Option<String>,
+    arch: Option<String>,
     evals: bool,
-    url: String,
 }
 
-impl BuildStatus {
+#[derive(Default)]
+struct PackageStatus {
+    package: String,
+    args: ResolvedArgs,
+    url: String,
+    builds: Vec<BuildStatus>,
+}
+
+impl PackageStatus {
     fn from_package_with_args(package: String, args: ResolvedArgs) -> Self {
         //
         // Examples:
@@ -43,15 +48,80 @@ impl BuildStatus {
         }
     }
 
-    fn fetch_data(self) -> anyhow::Result<String> {
+    fn get_url(&self) -> &str {
+        &self.url
+    }
+
+    fn fetch_data(&self) -> anyhow::Result<String> {
         let text = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(20))
             .build()?
-            .get(self.url)
+            .get(self.get_url())
             .send()?
             .error_for_status()?
             .text()?;
         Ok(text)
+    }
+
+    fn fetch_and_parse(self) -> anyhow::Result<Self> {
+        let document = self.fetch_data()?;
+        let doc = Html::parse_document(&document);
+        let tbody = match doc.find("tbody") {
+            None => {
+                // either the package was not evaluated (due to being e.g. unfree)
+                // or the package does not exist
+                let status: String = if let Some(alert) = doc.find("div.alert") {
+                    alert.text().collect()
+                } else {
+                    format!("Unknown Hydra Error found at {}", self.get_url())
+                };
+                return Ok(Self {
+                    builds: vec![BuildStatus {
+                        icon: StatusIcon::Warning,
+                        status,
+                        ..Default::default()
+                    }],
+                    ..self
+                });
+            }
+            Some(tbody) => tbody,
+        };
+        let mut builds: Vec<BuildStatus> = Vec::new();
+        for row in tbody.find_all("tr") {
+            let columns = row.find_all("td");
+            let [status, build, timestamp, name, arch] = columns.as_slice() else {
+                let err = || anyhow!("error parsing Hydra status: {:?}", row);
+                if row
+                    .find("td")
+                    .ok_or_else(err)?
+                    .find("a")
+                    .ok_or_else(err)?
+                    .attr("href")
+                    .ok_or_else(err)?
+                    .ends_with("/all")
+                {
+                    continue;
+                } else {
+                    bail!(err());
+                }
+            };
+            if let Some(span_status) = status.find("span") {
+                let span_status: String = span_status.text().collect();
+                let status = if span_status.trim() == "Queued" {
+                    "Queued: no build has been attempted for this package yet (still queued)"
+                        .to_string()
+                } else {
+                    format!("Unknown Hydra status: {span_status}")
+                };
+                builds.push(BuildStatus {
+                    icon: StatusIcon::Queued,
+                    status,
+                    ..Default::default()
+                });
+            }
+            todo!()
+        }
+        todo!()
     }
 }
 
@@ -59,8 +129,9 @@ impl BuildStatus {
 enum StatusIcon {
     Success,
     Failure,
+    Queued,
     #[default]
-    Unknown,
+    Warning,
 }
 
 impl Display for StatusIcon {
@@ -68,7 +139,8 @@ impl Display for StatusIcon {
         let icon = match self {
             Self::Success => "✔",
             Self::Failure => "✖",
-            Self::Unknown => "⚠",
+            Self::Queued => "⧖",
+            Self::Warning => "⚠",
         };
         write!(f, "{icon}")
     }

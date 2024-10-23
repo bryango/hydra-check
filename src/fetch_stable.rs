@@ -19,10 +19,10 @@ pub struct NixpkgsChannelVersion {
 impl NixpkgsChannelVersion {
     fn fetch() -> anyhow::Result<Vec<Self>> {
         info!("fetching the latest channel version from nixos.org/manual");
-        let html_string = reqwest::blocking::get("https://nixos.org/manual/nixpkgs/stable/")?
+        let document = reqwest::blocking::get("https://nixos.org/manual/nixpkgs/stable/")?
             .error_for_status()?
             .text()?;
-        let html = Html::parse_document(&html_string);
+        let html = Html::parse_document(&document);
         let channels_spec = html
             .find("body")
             .ok_or(anyhow!("fail to read <body> of the Nixpkgs manual"))?
