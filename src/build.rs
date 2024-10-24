@@ -5,7 +5,7 @@ use scraper::Html;
 use serde::Serialize;
 use serde_with::{skip_serializing_none, SerializeDisplay};
 
-use crate::{ResolvedArgs, SoupFind};
+use crate::{ResolvedArgs, SoupFind, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
@@ -94,8 +94,7 @@ impl PackageStatus {
                 if row
                     .find("td")?
                     .find("a")?
-                    .attr("href")
-                    .ok_or_else(err)?
+                    .try_attr("href")?
                     .ends_with("/all")
                 {
                     continue;
@@ -118,10 +117,10 @@ impl PackageStatus {
                 });
                 continue;
             }
-            let status = status.find("img")?.attr("title").ok_or_else(err)?;
+            let status = status.find("img")?.try_attr("title")?;
             let build_id: String = build.find("a")?.text().collect();
-            let build_url = build.find("a")?.attr("href").ok_or_else(err)?;
-            let timestamp = timestamp.find("time")?.attr("datetime").ok_or_else(err)?;
+            let build_url = build.find("a")?.try_attr("href")?;
+            let timestamp = timestamp.find("time")?.try_attr("datetime")?;
             todo!()
         }
         todo!()

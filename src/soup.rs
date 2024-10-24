@@ -29,3 +29,14 @@ impl<'a, T: Selectable<'a> + Debug> SoupFind<'a> for T {
         Ok(element)
     }
 }
+
+pub trait TryAttr<'a> {
+    fn try_attr(&self, attr: &str) -> anyhow::Result<&'a str>;
+}
+
+impl<'a> TryAttr<'a> for ElementRef<'a> {
+    fn try_attr(&self, attr: &str) -> anyhow::Result<&'a str> {
+        let err = anyhow!("could not find attribute '{attr}' in '{}'", self.html());
+        self.attr(attr).ok_or(err)
+    }
+}

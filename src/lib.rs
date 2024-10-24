@@ -8,7 +8,7 @@ pub use args::Args;
 use args::ResolvedArgs;
 use colored::Colorize;
 use fetch_stable::NixpkgsChannelVersion;
-pub use soup::SoupFind;
+pub use soup::{SoupFind, TryAttr};
 
 fn log_format(
     w: &mut dyn std::io::Write,

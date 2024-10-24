@@ -1,12 +1,12 @@
 //! This module provides a extremely hacky way of obtaining the latest release
 //! number (e.g. 24.05) of Nixpkgs, by parsing the manual on nixos.org.
 
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use log::info;
 use scraper::Html;
 use serde::Deserialize;
 
-use crate::SoupFind;
+use crate::{SoupFind, TryAttr};
 
 /// Currently supported Nixpkgs channel version (e.g. 24.05)
 #[derive(Deserialize, Debug, Clone)]
@@ -23,12 +23,7 @@ impl NixpkgsChannelVersion {
             .error_for_status()?
             .text()?;
         let html = Html::parse_document(&document);
-        let channels_spec = html
-            .find("body")?
-            .attr("data-nixpkgs-channels")
-            .ok_or(anyhow!(
-                "failed to read current channels from the Nixpkgs manual"
-            ))?;
+        let channels_spec = html.find("body")?.try_attr("data-nixpkgs-channels")?;
         Ok(serde_json::from_str(channels_spec)?)
     }
 
