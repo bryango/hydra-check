@@ -117,13 +117,31 @@ impl PackageStatus {
                 });
                 continue;
             }
-            let status = status.find("img")?.try_attr("title")?;
-            let build_id: String = build.find("a")?.text().collect();
-            let build_url = build.find("a")?.try_attr("href")?;
-            let timestamp = timestamp.find("time")?.try_attr("datetime")?;
-            todo!()
+            let status = status.find("img")?.try_attr("title")?.into();
+            let build_id = build.find("a")?.text().collect();
+            let build_url = build.find("a")?.attr("href");
+            let timestamp = timestamp.find("time")?.attr("datetime");
+            let name = name.text().collect();
+            let arch = arch.find("tt")?.text().collect();
+            let success = status == "Succeeded";
+            let icon = match success {
+                true => StatusIcon::Success,
+                false => StatusIcon::Failure,
+            };
+            let evals = true;
+            builds.push(BuildStatus {
+                icon,
+                success,
+                status,
+                timestamp: timestamp.map(str::to_string),
+                build_id: Some(build_id),
+                build_url: build_url.map(str::to_string),
+                name: Some(name),
+                arch: Some(arch),
+                evals,
+            });
         }
-        todo!()
+        Ok(Self { builds, ..self })
     }
 }
 
