@@ -67,10 +67,10 @@ impl PackageStatus {
         let document = self.fetch_data()?;
         let doc = Html::parse_document(&document);
         let tbody = match doc.find("tbody") {
-            None => {
+            Err(_) => {
                 // either the package was not evaluated (due to being e.g. unfree)
                 // or the package does not exist
-                let status: String = if let Some(alert) = doc.find("div.alert") {
+                let status: String = if let Ok(alert) = doc.find("div.alert") {
                     alert.text().collect()
                 } else {
                     format!("Unknown Hydra Error found at {}", self.get_url())
@@ -84,18 +84,16 @@ impl PackageStatus {
                     ..self
                 });
             }
-            Some(tbody) => tbody,
+            Ok(tbody) => tbody,
         };
         let mut builds: Vec<BuildStatus> = Vec::new();
         for row in tbody.find_all("tr") {
+            let err = || anyhow!("error parsing Hydra status: {:?}", row);
             let columns = row.find_all("td");
             let [status, build, timestamp, name, arch] = columns.as_slice() else {
-                let err = || anyhow!("error parsing Hydra status: {:?}", row);
                 if row
-                    .find("td")
-                    .ok_or_else(err)?
-                    .find("a")
-                    .ok_or_else(err)?
+                    .find("td")?
+                    .find("a")?
                     .attr("href")
                     .ok_or_else(err)?
                     .ends_with("/all")
@@ -105,7 +103,7 @@ impl PackageStatus {
                     bail!(err());
                 }
             };
-            if let Some(span_status) = status.find("span") {
+            if let Ok(span_status) = status.find("span") {
                 let span_status: String = span_status.text().collect();
                 let status = if span_status.trim() == "Queued" {
                     "Queued: no build has been attempted for this package yet (still queued)"
@@ -118,7 +116,12 @@ impl PackageStatus {
                     status,
                     ..Default::default()
                 });
+                continue;
             }
+            let status = status.find("img")?.attr("title").ok_or_else(err)?;
+            let build_id: String = build.find("a")?.text().collect();
+            let build_url = build.find("a")?.attr("href").ok_or_else(err)?;
+            let timestamp = timestamp.find("time")?.attr("datetime").ok_or_else(err)?;
             todo!()
         }
         todo!()

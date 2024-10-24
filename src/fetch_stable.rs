@@ -24,8 +24,7 @@ impl NixpkgsChannelVersion {
             .text()?;
         let html = Html::parse_document(&document);
         let channels_spec = html
-            .find("body")
-            .ok_or(anyhow!("fail to read <body> of the Nixpkgs manual"))?
+            .find("body")?
             .attr("data-nixpkgs-channels")
             .ok_or(anyhow!(
                 "failed to read current channels from the Nixpkgs manual"
