@@ -1,6 +1,3 @@
-//! This module provides a extremely hacky way of obtaining the latest release
-//! number (e.g. 24.05) of Nixpkgs, by parsing the manual on nixos.org.
-
 use anyhow::bail;
 use log::info;
 use scraper::Html;
@@ -8,7 +5,11 @@ use serde::Deserialize;
 
 use crate::{SoupFind, TryAttr};
 
-/// Currently supported Nixpkgs channel version (e.g. 24.05)
+/// Currently supported Nixpkgs channel version.
+///
+/// This provides a extremely hacky way of obtaining the latest release
+/// number (e.g. 24.05) of Nixpkgs, by parsing the manual on nixos.org.
+///
 #[derive(Deserialize, Debug, Clone)]
 pub struct NixpkgsChannelVersion {
     #[serde(rename = "channel")]

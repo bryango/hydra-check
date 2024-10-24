@@ -3,12 +3,12 @@ use std::fmt::Debug;
 use anyhow::anyhow;
 use scraper::{selectable::Selectable, ElementRef, Selector};
 
-/// A simple wrapper Trait that provides the `find` and `find_all` methods
+/// A simple wrapper trait that provides the `find` and `find_all` methods
 /// to [`scraper`]'s [`Selectable`] elements, inspired by the interface of
 /// Python's BeautifulSoup.
 pub trait SoupFind<'a> {
     /// Finds all child elements matching the CSS selectors
-    /// and collect them into a [`Vec`]
+    /// and collect them into a [`Vec`].
     fn find_all(self, selectors: &str) -> Vec<ElementRef<'a>>;
 
     /// Finds the first element that matches the CSS selectors,
@@ -30,7 +30,10 @@ impl<'a, T: Selectable<'a> + Debug> SoupFind<'a> for T {
     }
 }
 
+/// A trivial wrapper trait for [`scraper`]'s [`.attr()`][ElementRef::attr]
+/// that returns an [`anyhow::Result`] instead of an [`Option`].
 pub trait TryAttr<'a> {
+    /// Calls [`.attr`][ElementRef::attr] and errors out if there is [`None`].
     fn try_attr(&self, attr: &str) -> anyhow::Result<&'a str>;
 }
 

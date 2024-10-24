@@ -215,6 +215,8 @@ impl Args {
         Self { packages, ..self }
     }
 
+    /// Parses the command line flags and provides an educated guess
+    /// for the missing arguments.
     pub fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
         let args = Self::parse();
         let log_level = match args.quiet {
