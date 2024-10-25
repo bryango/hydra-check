@@ -70,7 +70,7 @@ pub struct Args {
 
 #[derive(Debug, Default)]
 pub struct ResolvedArgs {
-    packages: Vec<String>,
+    pub(crate) packages: Vec<String>,
     url: bool,
     json: bool,
     short: bool,
@@ -216,9 +216,16 @@ impl Args {
     }
 
     /// Parses the command line flags and provides an educated guess
-    /// for the missing arguments.
+    /// for the missing arguments. Also sets the log level.
     pub fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
         let args = Self::parse();
+        args.guess_all_args()
+    }
+
+    /// Guesses all relevant command line arguments. This is intended for
+    /// internal use only; try [`Args::parse_and_guess()`] instead.
+    pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
+        let args = self;
         let log_level = match args.quiet {
             true => log::LevelFilter::Warn,
             false => log::LevelFilter::Info,

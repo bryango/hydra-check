@@ -22,15 +22,15 @@ pub struct BuildStatus {
 }
 
 #[derive(Default)]
-struct PackageStatus {
-    package: String,
-    args: ResolvedArgs,
+struct PackageStatus<'a> {
+    package: &'a str,
+    args: Option<&'a ResolvedArgs>,
     url: String,
     builds: Vec<BuildStatus>,
 }
 
-impl PackageStatus {
-    fn from_package_with_args(package: String, args: ResolvedArgs) -> Self {
+impl<'a> PackageStatus<'a> {
+    fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
         //
         // Examples:
         // - https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
@@ -42,7 +42,7 @@ impl PackageStatus {
         let url = format!("https://hydra.nixos.org/job/{}/{}", args.jobset, package);
         Self {
             package,
-            args,
+            args: Some(args),
             url,
             ..Default::default()
         }
@@ -170,4 +170,20 @@ impl Display for StatusIcon {
 fn serialize_success_icon() {
     let success_icon = serde_json::to_string(&StatusIcon::Success).unwrap();
     debug_assert_eq!(success_icon, r#""✔""#)
+}
+
+#[test]
+fn fetch_and_parse() -> anyhow::Result<()> {
+    use crate::Args;
+    use clap::Parser;
+    let args = Args::parse_from(["hydra-check", "--channel", "staging-next", "coreutils"])
+        .guess_all_args()
+        .unwrap();
+    for package in args.packages.iter() {
+        let pkg_stat = PackageStatus::from_package_with_args(package, &args);
+        let pkg_stat = pkg_stat.fetch_and_parse()?;
+        eprintln!("> build stats in json:");
+        println!("{}", serde_json::to_string(&pkg_stat.builds)?);
+    }
+    Ok(())
 }
