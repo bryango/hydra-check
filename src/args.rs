@@ -32,8 +32,8 @@ use crate::{constants, log_format, NixpkgsChannelVersion};
 ///   - https://hydra.nixos.org/project/nixpkgs
 ///
 pub struct Args {
-    #[arg(conflicts_with = "eval")]
-    packages: Vec<String>,
+    #[arg(id = "PACKAGES")]
+    packages_or_evals: Vec<String>,
 
     /// Only print the hydra build url, then exit
     #[arg(long)]
@@ -59,26 +59,25 @@ pub struct Args {
     #[arg(long, conflicts_with = "channel")]
     jobset: Option<String>,
 
-    /// Print information about specific evaluations
+    /// Print information about specific evaluations instead of packages
     #[arg(short, long)]
-    eval: Vec<String>,
+    eval: bool,
 
     /// Print more information
     #[arg(short, long)]
     verbose: bool,
 }
 
-/// Resolved command line arguments, with all options unwrapped
+/// Resolved command line arguments, with all options normalized and unwrapped
 #[derive(Debug, Default)]
 pub struct ResolvedArgs {
-    /// List of packages to query, with normalized names
-    pub packages: Vec<String>,
+    /// List of packages or evals to query
+    pub packages_or_evals: Vec<String>,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) jobset: String,
-    eval: Vec<String>,
-    verbose: bool,
+    eval: bool,
 }
 
 impl Args {
@@ -200,7 +199,7 @@ impl Args {
 
     fn guess_packages(self) -> Self {
         let packages = self
-            .packages
+            .packages_or_evals
             .iter()
             .filter_map(|package| {
                 if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
@@ -214,7 +213,10 @@ impl Args {
                 }
             })
             .collect();
-        Self { packages, ..self }
+        Self {
+            packages_or_evals: packages,
+            ..self
+        }
     }
 
     /// Parses the command line flags and provides an educated guess
@@ -237,7 +239,7 @@ impl Args {
         let args = args.guess_jobset();
         let args = args.guess_packages();
         Ok(ResolvedArgs {
-            packages: args.packages,
+            packages_or_evals: args.packages_or_evals,
             url: args.url,
             json: args.json,
             short: args.short,
@@ -245,7 +247,6 @@ impl Args {
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
             eval: args.eval,
-            verbose: args.verbose,
         })
     }
 }

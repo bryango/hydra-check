@@ -81,6 +81,9 @@ impl<'a> PackageStatus<'a> {
                 } else {
                     format!("Unknown Hydra Error found at {}", self.get_url())
                 };
+                // sanitize the text a little bit
+                let status: Vec<&str> = status.lines().map(str::trim).collect();
+                let status: String = status.join(" ");
                 return Ok(Self {
                     builds: vec![BuildStatus {
                         icon: StatusIcon::Warning,
@@ -182,6 +185,7 @@ impl<'a> PackageStatus<'a> {
         }
         for column in table.column_iter_mut() {
             column.set_padding((0, 1));
+            column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
             break; // only for the first column
         }
         Ok(title + table.to_string().as_str())
@@ -268,7 +272,7 @@ fn fetch_and_parse() -> anyhow::Result<()> {
     ])
     .guess_all_args()
     .unwrap();
-    for (idx, package) in args.packages.iter().enumerate() {
+    for (idx, package) in args.packages_or_evals.iter().enumerate() {
         let pkg_stat = PackageStatus::from_package_with_args(package, &args);
         if idx > 0 {
             println!("");
