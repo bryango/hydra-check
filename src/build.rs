@@ -1,6 +1,7 @@
 use std::{fmt::Display, time::Duration};
 
 use anyhow::{anyhow, bail};
+use colored::{ColoredString, Colorize};
 use scraper::Html;
 use serde::Serialize;
 use serde_with::{skip_serializing_none, SerializeDisplay};
@@ -154,14 +155,20 @@ enum StatusIcon {
     Warning,
 }
 
+impl From<&StatusIcon> for ColoredString {
+    fn from(icon: &StatusIcon) -> Self {
+        match icon {
+            StatusIcon::Success => "✔".green(),
+            StatusIcon::Failure => "✖".red(),
+            StatusIcon::Queued => "⧖".yellow(),
+            StatusIcon::Warning => "⚠".yellow(),
+        }
+    }
+}
+
 impl Display for StatusIcon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let icon = match self {
-            Self::Success => "✔",
-            Self::Failure => "✖",
-            Self::Queued => "⧖",
-            Self::Warning => "⚠",
-        };
+        let icon = ColoredString::from(self).normal();
         write!(f, "{icon}")
     }
 }
