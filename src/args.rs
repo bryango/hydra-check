@@ -63,20 +63,20 @@ pub struct Args {
     #[arg(short, long)]
     eval: Option<String>,
 
-    /// Print only essential outputs
+    /// Print more information
     #[arg(short, long)]
-    quiet: bool,
+    verbose: bool,
 }
 
 #[derive(Debug, Default)]
 pub struct ResolvedArgs {
-    pub(crate) packages: Vec<String>,
-    url: bool,
+    pub packages: Vec<String>,
+    pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) jobset: String,
     eval: Option<String>,
-    quiet: bool,
+    verbose: bool,
 }
 
 impl Args {
@@ -226,9 +226,9 @@ impl Args {
     /// internal use only; try [`Args::parse_and_guess()`] instead.
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
-        let log_level = match args.quiet {
-            true => log::LevelFilter::Warn,
-            false => log::LevelFilter::Info,
+        let log_level = match args.verbose {
+            false => log::LevelFilter::Warn,
+            true => log::LevelFilter::Info,
         };
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
@@ -243,7 +243,7 @@ impl Args {
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
             eval: args.eval,
-            quiet: args.quiet,
+            verbose: args.verbose,
         })
     }
 }

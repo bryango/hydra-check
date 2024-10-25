@@ -1,6 +1,6 @@
 use std::{fmt::Display, time::Duration};
 
-use anyhow::{anyhow, bail};
+use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 use scraper::Html;
@@ -13,7 +13,7 @@ use crate::{ResolvedArgs, SoupFind, TryAttr};
 #[derive(Serialize, Debug, Default)]
 pub struct BuildStatus {
     icon: StatusIcon,
-    success: bool,
+    pub success: bool,
     status: String,
     timestamp: Option<String>,
     build_id: Option<String>,
@@ -23,15 +23,15 @@ pub struct BuildStatus {
     evals: bool,
 }
 
-struct PackageStatus<'a> {
+pub struct PackageStatus<'a> {
     package: &'a str,
     args: &'a ResolvedArgs,
     url: String,
-    builds: Vec<BuildStatus>,
+    pub builds: Vec<BuildStatus>,
 }
 
 impl<'a> PackageStatus<'a> {
-    fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
+    pub fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
         //
         // Examples:
         // - https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
@@ -89,7 +89,6 @@ impl<'a> PackageStatus<'a> {
         };
         let mut builds: Vec<BuildStatus> = Vec::new();
         for row in tbody.find_all("tr") {
-            let err = || anyhow!("error parsing Hydra status: {:?}", row);
             let columns = row.find_all("td");
             let [status, build, timestamp, name, arch] = columns.as_slice() else {
                 if row
@@ -100,7 +99,11 @@ impl<'a> PackageStatus<'a> {
                 {
                     continue;
                 } else {
-                    bail!(err());
+                    bail!(
+                        "error while parsing Hydra status for package {}: {:?}",
+                        self.package,
+                        row
+                    );
                 }
             };
             if let Ok(span_status) = status.find("span") {
@@ -146,7 +149,10 @@ impl<'a> PackageStatus<'a> {
         Ok(Self { builds, ..self })
     }
 
-    fn fetch_and_print(self) -> anyhow::Result<String> {
+    pub fn fetch_and_print(self) -> anyhow::Result<String> {
+        if self.args.url {
+            return Ok(self.get_url().into());
+        }
         let stat = self.fetch_and_parse()?;
         if stat.args.json {
             let json_string = serde_json::to_string_pretty(&stat.builds)?;

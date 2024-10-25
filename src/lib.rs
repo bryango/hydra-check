@@ -1,11 +1,12 @@
 mod args;
-pub mod build;
+mod build;
 pub mod constants;
 mod fetch_stable;
 mod soup;
 
 pub use args::Args;
 use args::ResolvedArgs;
+pub use build::PackageStatus;
 use colored::Colorize;
 use fetch_stable::NixpkgsChannelVersion;
 pub use soup::{SoupFind, TryAttr};
