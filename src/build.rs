@@ -11,6 +11,7 @@ use crate::{ResolvedArgs, SoupFind, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
+/// Status of a single build attempt, can be serialized a JSON entry
 pub struct BuildStatus {
     icon: StatusIcon,
     pub success: bool,
@@ -23,14 +24,18 @@ pub struct BuildStatus {
     evals: bool,
 }
 
+/// Container for the build status and metadata of a package
 pub struct PackageStatus<'a> {
     package: &'a str,
     args: &'a ResolvedArgs,
     url: String,
+    /// Status of recent builds of the package
     pub builds: Vec<BuildStatus>,
 }
 
 impl<'a> PackageStatus<'a> {
+    /// Initializes the status container with the resolved package name
+    /// and the resolved command line arguments.
     pub fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
         //
         // Examples:
@@ -149,7 +154,9 @@ impl<'a> PackageStatus<'a> {
         Ok(Self { builds, ..self })
     }
 
-    pub fn fetch_and_print(self) -> anyhow::Result<String> {
+    /// Fetches the package build status from hydra.nixos.org and formats
+    /// the result according to the command line specs.
+    pub fn fetch_and_format(self) -> anyhow::Result<String> {
         if self.args.url {
             return Ok(self.get_url().into());
         }
@@ -266,7 +273,7 @@ fn fetch_and_parse() -> anyhow::Result<()> {
         if idx > 0 {
             println!("");
         }
-        println!("{}", pkg_stat.fetch_and_print()?);
+        println!("{}", pkg_stat.fetch_and_format()?);
     }
     Ok(())
 }

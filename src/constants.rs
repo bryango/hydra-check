@@ -1,4 +1,4 @@
-//! Useful constants shared across the program.
+//! Useful constants shared across the program
 
 /// Currently supported systems on [hydra.nixos.org][hydra].
 /// This may change in the future.

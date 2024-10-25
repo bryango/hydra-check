@@ -59,23 +59,25 @@ pub struct Args {
     #[arg(long, conflicts_with = "channel")]
     jobset: Option<String>,
 
-    /// Print information about a specific evaluation
+    /// Print information about specific evaluations
     #[arg(short, long)]
-    eval: Option<String>,
+    eval: Vec<String>,
 
     /// Print more information
     #[arg(short, long)]
     verbose: bool,
 }
 
+/// Resolved command line arguments, with all options unwrapped
 #[derive(Debug, Default)]
 pub struct ResolvedArgs {
+    /// List of packages to query, with normalized names
     pub packages: Vec<String>,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) jobset: String,
-    eval: Option<String>,
+    eval: Vec<String>,
     verbose: bool,
 }
 

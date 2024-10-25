@@ -11,7 +11,7 @@ fn main() -> anyhow::Result<()> {
         if !pkg_stat.builds.get(0).is_some_and(|build| build.success) {
             success = false;
         }
-        println!("{}", pkg_stat.fetch_and_print()?);
+        println!("{}", pkg_stat.fetch_and_format()?);
     }
     if !success {
         std::process::exit(1);
