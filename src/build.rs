@@ -2,6 +2,7 @@ use std::{fmt::Display, time::Duration};
 
 use anyhow::{anyhow, bail};
 use colored::{ColoredString, Colorize};
+use comfy_table::Table;
 use scraper::Html;
 use serde::Serialize;
 use serde_with::{skip_serializing_none, SerializeDisplay};
@@ -22,10 +23,9 @@ pub struct BuildStatus {
     evals: bool,
 }
 
-#[derive(Default)]
 struct PackageStatus<'a> {
     package: &'a str,
-    args: Option<&'a ResolvedArgs>,
+    args: &'a ResolvedArgs,
     url: String,
     builds: Vec<BuildStatus>,
 }
@@ -43,9 +43,9 @@ impl<'a> PackageStatus<'a> {
         let url = format!("https://hydra.nixos.org/job/{}/{}", args.jobset, package);
         Self {
             package,
-            args: Some(args),
+            args,
             url,
-            ..Default::default()
+            builds: vec![],
         }
     }
 
@@ -118,22 +118,23 @@ impl<'a> PackageStatus<'a> {
                 });
                 continue;
             }
-            let status = status.find("img")?.try_attr("title")?.into();
+            let status = status.find("img")?.try_attr("title")?;
             let build_id = build.find("a")?.text().collect();
             let build_url = build.find("a")?.attr("href");
             let timestamp = timestamp.find("time")?.attr("datetime");
             let name = name.text().collect();
             let arch = arch.find("tt")?.text().collect();
             let success = status == "Succeeded";
-            let icon = match success {
-                true => StatusIcon::Success,
-                false => StatusIcon::Failure,
+            let icon = match (success, status) {
+                (true, _) => StatusIcon::Success,
+                (false, "Cancelled") => StatusIcon::Cancelled,
+                (false, _) => StatusIcon::Failure,
             };
             let evals = true;
             builds.push(BuildStatus {
                 icon,
                 success,
-                status,
+                status: status.into(),
                 timestamp: timestamp.map(str::to_string),
                 build_id: Some(build_id),
                 build_url: build_url.map(str::to_string),
@@ -144,12 +145,71 @@ impl<'a> PackageStatus<'a> {
         }
         Ok(Self { builds, ..self })
     }
+
+    fn fetch_and_print(self) -> anyhow::Result<String> {
+        let stat = self.fetch_and_parse()?;
+        if stat.args.json {
+            let json_string = serde_json::to_string_pretty(&stat.builds)?;
+            return Ok(json_string);
+        }
+        let title = format!(
+            "Build Status for {} on jobset {}\n{}\n",
+            stat.package.bold(),
+            stat.args.jobset.bold(),
+            stat.get_url().dimmed()
+        );
+
+        let mut table = Table::new();
+        table.load_preset(comfy_table::presets::NOTHING);
+        for build in stat.builds {
+            table.add_row(build.as_vec());
+            if stat.args.short {
+                break;
+            }
+        }
+        for column in table.column_iter_mut() {
+            column.set_padding((0, 1));
+            break; // only for the first column
+        }
+        Ok(title + table.to_string().as_str())
+    }
+}
+
+impl BuildStatus {
+    fn as_vec(&self) -> Vec<ColoredString> {
+        let mut row = Vec::new();
+        let icon = ColoredString::from(&self.icon);
+        let status = match (self.evals, self.success) {
+            (false, _) => format!("{icon} {}", self.status),
+            (true, false) => format!("{icon} ({})", self.status),
+            (true, true) => format!("{icon}"),
+        };
+        row.push(status.into());
+        let details = if self.evals {
+            let name = self.name.clone().unwrap_or_default().into();
+            let timestamp = self
+                .timestamp
+                .clone()
+                .unwrap_or_default()
+                .split_once('T')
+                .unwrap_or_default()
+                .0
+                .into();
+            let build_url = self.build_url.clone().unwrap_or_default().dimmed();
+            &[name, timestamp, build_url]
+        } else {
+            &Default::default()
+        };
+        row.extend_from_slice(details);
+        row
+    }
 }
 
 #[derive(SerializeDisplay, Debug, Clone, Default)]
 enum StatusIcon {
     Success,
     Failure,
+    Cancelled,
     Queued,
     #[default]
     Warning,
@@ -160,6 +220,7 @@ impl From<&StatusIcon> for ColoredString {
         match icon {
             StatusIcon::Success => "✔".green(),
             StatusIcon::Failure => "✖".red(),
+            StatusIcon::Cancelled => "⏹".red(),
             StatusIcon::Queued => "⧖".yellow(),
             StatusIcon::Warning => "⚠".yellow(),
         }
@@ -183,14 +244,23 @@ fn serialize_success_icon() {
 fn fetch_and_parse() -> anyhow::Result<()> {
     use crate::Args;
     use clap::Parser;
-    let args = Args::parse_from(["hydra-check", "--channel", "staging-next", "coreutils"])
-        .guess_all_args()
-        .unwrap();
-    for package in args.packages.iter() {
+    let args = Args::parse_from([
+        "hydra-check",
+        "--channel",
+        "staging-next",
+        "coreutils",
+        "rust-cbindgen",
+        // "--json",
+        // "--short",
+    ])
+    .guess_all_args()
+    .unwrap();
+    for (idx, package) in args.packages.iter().enumerate() {
         let pkg_stat = PackageStatus::from_package_with_args(package, &args);
-        let pkg_stat = pkg_stat.fetch_and_parse()?;
-        eprintln!("> build stats in json:");
-        println!("{}", serde_json::to_string(&pkg_stat.builds)?);
+        if idx > 0 {
+            println!("");
+        }
+        println!("{}", pkg_stat.fetch_and_print()?);
     }
     Ok(())
 }

@@ -72,8 +72,8 @@ pub struct Args {
 pub struct ResolvedArgs {
     pub(crate) packages: Vec<String>,
     url: bool,
-    json: bool,
-    short: bool,
+    pub(crate) json: bool,
+    pub(crate) short: bool,
     pub(crate) jobset: String,
     eval: Option<String>,
     quiet: bool,
