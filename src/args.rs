@@ -17,6 +17,7 @@ pub struct Evaluation {
 
 #[derive(Debug, Clone)]
 pub enum Queries {
+    Jobset,
     Packages(Vec<String>),
     Evals(Vec<Evaluation>),
 }
@@ -266,9 +267,10 @@ impl Args {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let queries = match args.eval {
-            true => Queries::Evals(args.guess_evals()),
-            false => Queries::Packages(args.guess_packages()),
+        let queries = match (args.queries.is_empty(), args.eval) {
+            (true, _) => Queries::Jobset,
+            (false, true) => Queries::Evals(args.guess_evals()),
+            (false, false) => Queries::Packages(args.guess_packages()),
         };
         Ok(ResolvedArgs {
             queries,

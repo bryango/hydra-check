@@ -19,6 +19,7 @@ fn query_packages(packages: &Vec<String>, args: &ResolvedArgs) -> anyhow::Result
 fn main() -> anyhow::Result<()> {
     let args = Args::parse_and_guess()?;
     let success = match args.queries.borrow() {
+        Queries::Jobset => todo!(),
         Queries::Packages(packages) => query_packages(packages, &args)?,
         Queries::Evals(evals) => todo!(),
     };

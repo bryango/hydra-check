@@ -2,6 +2,7 @@ mod args;
 mod builds;
 pub mod constants;
 mod fetch_stable;
+mod jobset;
 mod soup;
 
 use std::time::Duration;
