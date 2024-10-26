@@ -4,6 +4,8 @@ pub mod constants;
 mod fetch_stable;
 mod soup;
 
+use std::time::Duration;
+
 pub use args::Args;
 pub use args::{Queries, ResolvedArgs};
 pub use builds::{BuildStatus, PackageStatus};
@@ -38,6 +40,20 @@ impl std::fmt::Display for StatusIcon {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let icon = ColoredString::from(self).normal();
         write!(f, "{icon}")
+    }
+}
+
+trait FetchData {
+    fn get_url(&self) -> &str;
+    fn fetch_data(&self) -> anyhow::Result<String> {
+        let text = reqwest::blocking::Client::builder()
+            .timeout(Duration::from_secs(20))
+            .build()?
+            .get(self.get_url())
+            .send()?
+            .error_for_status()?
+            .text()?;
+        Ok(text)
     }
 }
 

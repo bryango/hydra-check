@@ -1,5 +1,3 @@
-use std::time::Duration;
-
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
@@ -7,7 +5,7 @@ use scraper::Html;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{FetchData, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
@@ -63,6 +61,12 @@ pub struct PackageStatus<'a> {
     pub builds: Vec<BuildStatus>,
 }
 
+impl FetchData for PackageStatus<'_> {
+    fn get_url(&self) -> &str {
+        &self.url
+    }
+}
+
 impl<'a> PackageStatus<'a> {
     /// Initializes the status container with the resolved package name
     /// and the resolved command line arguments.
@@ -82,21 +86,6 @@ impl<'a> PackageStatus<'a> {
             url,
             builds: vec![],
         }
-    }
-
-    fn get_url(&self) -> &str {
-        &self.url
-    }
-
-    fn fetch_data(&self) -> anyhow::Result<String> {
-        let text = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(20))
-            .build()?
-            .get(self.get_url())
-            .send()?
-            .error_for_status()?
-            .text()?;
-        Ok(text)
     }
 
     fn fetch_and_parse(self) -> anyhow::Result<Self> {
