@@ -1,7 +1,6 @@
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
-use scraper::Html;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -89,20 +88,9 @@ impl<'a> PackageStatus<'a> {
     }
 
     fn fetch_and_parse(self) -> anyhow::Result<Self> {
-        let document = self.fetch_data()?;
-        let doc = Html::parse_document(&document);
-        let tbody = match doc.find("tbody") {
-            Err(_) => {
-                // either the package was not evaluated (due to being e.g. unfree)
-                // or the package does not exist
-                let status: String = if let Ok(alert) = doc.find("div.alert") {
-                    alert.text().collect()
-                } else {
-                    format!("Unknown Hydra Error found at {}", self.get_url())
-                };
-                // sanitize the text a little bit
-                let status: Vec<&str> = status.lines().map(str::trim).collect();
-                let status: String = status.join(" ");
+        let doc = self.fetch_document()?;
+        let tbody = match self.find_tbody(&doc) {
+            Err(status) => {
                 return Ok(Self {
                     builds: vec![BuildStatus {
                         icon: StatusIcon::Warning,

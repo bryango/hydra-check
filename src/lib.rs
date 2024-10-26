@@ -12,6 +12,7 @@ pub use args::{Queries, ResolvedArgs};
 pub use builds::{BuildStatus, PackageStatus};
 use colored::{ColoredString, Colorize};
 use fetch_stable::NixpkgsChannelVersion;
+use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};
 
@@ -44,17 +45,38 @@ impl std::fmt::Display for StatusIcon {
     }
 }
 
-trait FetchData {
+trait FetchData: Sized {
     fn get_url(&self) -> &str;
-    fn fetch_data(&self) -> anyhow::Result<String> {
-        let text = reqwest::blocking::Client::builder()
+    fn fetch_document(&self) -> anyhow::Result<Html> {
+        let document = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(20))
             .build()?
             .get(self.get_url())
             .send()?
             .error_for_status()?
             .text()?;
-        Ok(text)
+        Ok(Html::parse_document(&document))
+    }
+
+    /// Checks if the fetched [Html] contains a `tbody` tag (table body).
+    /// If not, returns the alert text. If yes, returns the found element.
+    fn find_tbody<'a>(&self, doc: &'a Html) -> Result<ElementRef<'a>, String> {
+        match doc.find("tbody") {
+            Err(_) => {
+                // either the package was not evaluated (due to being e.g. unfree)
+                // or the package does not exist
+                let status = if let Ok(alert) = doc.find("div.alert") {
+                    alert.text().collect()
+                } else {
+                    format!("Unknown Hydra Error found at {}", self.get_url())
+                };
+                // sanitize the text a little bit
+                let status: Vec<&str> = status.lines().map(str::trim).collect();
+                let status: String = status.join(" ");
+                Err(status)
+            }
+            Ok(tbody) => Ok(tbody),
+        }
     }
 }
 

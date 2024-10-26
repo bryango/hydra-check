@@ -3,7 +3,6 @@ use serde_with::skip_serializing_none;
 
 use crate::{ResolvedArgs, StatusIcon};
 
-
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
 /// Status of a single evaluation, can be serialized a JSON entry
@@ -32,6 +31,4 @@ pub struct JobsetStatus<'a> {
     pub builds: Vec<EvalStatus>,
 }
 
-impl<'a> JobsetStatus<'a> {
-    
-}
+impl<'a> JobsetStatus<'a> {}

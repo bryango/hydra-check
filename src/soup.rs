@@ -12,7 +12,7 @@ pub trait SoupFind<'a> {
     fn find_all(self, selectors: &str) -> Vec<ElementRef<'a>>;
 
     /// Finds the first element that matches the CSS selectors,
-    /// returning [`None`] if not found.
+    /// returning [`anyhow::Error`] if not found.
     fn find(self, selectors: &str) -> anyhow::Result<ElementRef<'a>>;
 }
 
