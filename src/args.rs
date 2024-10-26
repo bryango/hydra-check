@@ -9,6 +9,18 @@ use std::{
 
 use crate::{constants, log_format, NixpkgsChannelVersion};
 
+#[derive(Debug, Clone)]
+pub struct Evaluation {
+    id: u64,
+    filter: Option<String>,
+}
+
+#[derive(Debug, Clone)]
+pub enum Queries {
+    Packages(Vec<String>),
+    Evals(Vec<Evaluation>),
+}
+
 #[derive(Parser, Debug, Default)]
 #[command(author, version, verbatim_doc_comment)]
 #[allow(rustdoc::bare_urls)]
@@ -33,7 +45,7 @@ use crate::{constants, log_format, NixpkgsChannelVersion};
 ///
 pub struct Args {
     #[arg(id = "PACKAGES")]
-    packages_or_evals: Vec<String>,
+    queries: Vec<String>,
 
     /// Only print the hydra build url, then exit
     #[arg(long)]
@@ -69,15 +81,14 @@ pub struct Args {
 }
 
 /// Resolved command line arguments, with all options normalized and unwrapped
-#[derive(Debug, Default)]
+#[derive(Debug)]
 pub struct ResolvedArgs {
     /// List of packages or evals to query
-    pub packages_or_evals: Vec<String>,
+    pub queries: Queries,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) jobset: String,
-    eval: bool,
 }
 
 impl Args {
@@ -199,7 +210,7 @@ impl Args {
 
     fn guess_packages(self) -> Self {
         let packages = self
-            .packages_or_evals
+            .queries
             .iter()
             .filter_map(|package| {
                 if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
@@ -214,9 +225,32 @@ impl Args {
             })
             .collect();
         Self {
-            packages_or_evals: packages,
+            queries: packages,
             ..self
         }
+    }
+
+    fn parse_evals(&self) -> Vec<Evaluation> {
+        let mut evals = Vec::new();
+        for eval in self.queries.iter() {
+            let mut eval_spec = eval.splitn(2, "/");
+            let id = eval_spec.next().unwrap();
+            let filter = eval_spec.next().map(String::from);
+            match id.parse() {
+                Ok(id) => evals.push(Evaluation { id, filter }),
+                Err(err) => {
+                    error!(
+                        "evaluations must be identified by a number {} {} '{}': {}",
+                        "(slash an optional filter), e.g. '1809585/coreutils'.",
+                        "Instead we get",
+                        id,
+                        err
+                    );
+                    std::process::exit(1);
+                }
+            }
+        }
+        evals
     }
 
     /// Parses the command line flags and provides an educated guess
@@ -238,15 +272,18 @@ impl Args {
         let args = args.guess_arch();
         let args = args.guess_jobset();
         let args = args.guess_packages();
+        let queries = match args.eval {
+            true => Queries::Evals(args.parse_evals()),
+            false => Queries::Packages(args.queries),
+        };
         Ok(ResolvedArgs {
-            packages_or_evals: args.packages_or_evals,
+            queries,
             url: args.url,
             json: args.json,
             short: args.short,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
-            eval: args.eval,
         })
     }
 }

@@ -5,7 +5,7 @@ mod fetch_stable;
 mod soup;
 
 pub use args::Args;
-pub use args::ResolvedArgs;
+pub use args::{ResolvedArgs, Queries};
 pub use build::{BuildStatus, PackageStatus};
 use colored::Colorize;
 use fetch_stable::NixpkgsChannelVersion;

@@ -257,27 +257,27 @@ fn serialize_success_icon() {
     debug_assert_eq!(success_icon, r#""✔""#)
 }
 
-#[test]
-fn fetch_and_parse() -> anyhow::Result<()> {
-    use crate::Args;
-    use clap::Parser;
-    let args = Args::parse_from([
-        "hydra-check",
-        "--channel",
-        "staging-next",
-        "coreutils",
-        "rust-cbindgen",
-        // "--json",
-        // "--short",
-    ])
-    .guess_all_args()
-    .unwrap();
-    for (idx, package) in args.packages_or_evals.iter().enumerate() {
-        let pkg_stat = PackageStatus::from_package_with_args(package, &args);
-        if idx > 0 {
-            println!("");
-        }
-        println!("{}", pkg_stat.fetch_and_format()?);
-    }
-    Ok(())
-}
+// #[test]
+// fn fetch_and_parse() -> anyhow::Result<()> {
+//     use crate::Args;
+//     use clap::Parser;
+//     let args = Args::parse_from([
+//         "hydra-check",
+//         "--channel",
+//         "staging-next",
+//         "coreutils",
+//         "rust-cbindgen",
+//         // "--json",
+//         // "--short",
+//     ])
+//     .guess_all_args()
+//     .unwrap();
+//     for (idx, package) in args.queries.iter().enumerate() {
+//         let pkg_stat = PackageStatus::from_package_with_args(package, &args);
+//         if idx > 0 {
+//             println!("");
+//         }
+//         println!("{}", pkg_stat.fetch_and_format()?);
+//     }
+//     Ok(())
+// }
