@@ -166,20 +166,24 @@ impl<'a> PackageStatus<'a> {
 
     /// Fetches the package build status from hydra.nixos.org and formats
     /// the result according to the command line specs.
-    pub fn fetch_and_format(self) -> anyhow::Result<String> {
+    pub fn fetch_and_format(self) -> anyhow::Result<(bool, String)> {
         if self.args.url {
-            return Ok(self.get_url().into());
+            return Ok((true, self.get_url().into()));
         }
         let stat = self.fetch_and_parse()?;
+        let success = stat.builds.get(0).is_some_and(|build| build.success);
         if stat.args.json {
             let json_string = serde_json::to_string_pretty(&stat.builds)?;
-            return Ok(json_string);
+            return Ok((success, json_string));
         }
         let title = format!(
-            "Build Status for {} on jobset {}\n{}\n",
+            "Build Status for {} on jobset {}{}",
             stat.package.bold(),
             stat.args.jobset.bold(),
-            stat.get_url().dimmed()
+            match stat.args.short && success {
+                true => "".into(),
+                false => format!("\n{}", stat.get_url().dimmed()),
+            }
         );
 
         let mut table = Table::new();
@@ -195,6 +199,6 @@ impl<'a> PackageStatus<'a> {
             // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
             break; // only for the first column
         }
-        Ok(title + table.to_string().as_str())
+        Ok((success, format!("{}\n{}", title, table.trim_fmt())))
     }
 }

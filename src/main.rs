@@ -2,18 +2,19 @@ use hydra_check::{Args, PackageStatus, Queries, ResolvedArgs};
 use std::borrow::Borrow;
 
 fn query_packages(packages: &Vec<String>, args: &ResolvedArgs) -> anyhow::Result<bool> {
-    let mut success = true;
+    let mut status = true;
     for (idx, package) in packages.iter().enumerate() {
         let pkg_stat = PackageStatus::from_package_with_args(package, &args);
         if idx > 0 {
             println!("");
         }
-        if !pkg_stat.builds.get(0).is_some_and(|build| build.success) {
-            success = false;
+        let (success, output) = pkg_stat.fetch_and_format()?;
+        if !success {
+            status = false;
         }
-        println!("{}", pkg_stat.fetch_and_format()?);
+        println!("{}", output);
     }
-    Ok(success)
+    Ok(status)
 }
 
 fn main() -> anyhow::Result<()> {
