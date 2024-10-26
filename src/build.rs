@@ -185,7 +185,7 @@ impl<'a> PackageStatus<'a> {
         }
         for column in table.column_iter_mut() {
             column.set_padding((0, 1));
-            column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
+            // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
             break; // only for the first column
         }
         Ok(title + table.to_string().as_str())

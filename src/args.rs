@@ -208,9 +208,8 @@ impl Args {
         format!("{package}{arch_suffix}")
     }
 
-    fn guess_packages(self) -> Self {
-        let packages = self
-            .queries
+    fn guess_packages(&self) -> Vec<String> {
+        self.queries
             .iter()
             .filter_map(|package| {
                 if package.starts_with("python3Packages") || package.starts_with("python3.pkgs") {
@@ -223,14 +222,10 @@ impl Args {
                     Some(self.guess_package_name(&package))
                 }
             })
-            .collect();
-        Self {
-            queries: packages,
-            ..self
-        }
+            .collect()
     }
 
-    fn parse_evals(&self) -> Vec<Evaluation> {
+    fn guess_evals(&self) -> Vec<Evaluation> {
         let mut evals = Vec::new();
         for eval in self.queries.iter() {
             let mut eval_spec = eval.splitn(2, "/");
@@ -271,10 +266,9 @@ impl Args {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let args = args.guess_packages();
         let queries = match args.eval {
-            true => Queries::Evals(args.parse_evals()),
-            false => Queries::Packages(args.queries),
+            true => Queries::Evals(args.guess_evals()),
+            false => Queries::Packages(args.guess_packages()),
         };
         Ok(ResolvedArgs {
             queries,
