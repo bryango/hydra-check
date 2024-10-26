@@ -1,13 +1,13 @@
-use std::{fmt::Display, time::Duration};
+use std::time::Duration;
 
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 use scraper::Html;
 use serde::Serialize;
-use serde_with::{skip_serializing_none, SerializeDisplay};
+use serde_with::skip_serializing_none;
 
-use crate::{ResolvedArgs, SoupFind, TryAttr};
+use crate::{ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default)]
@@ -22,6 +22,36 @@ pub struct BuildStatus {
     name: Option<String>,
     arch: Option<String>,
     evals: bool,
+}
+
+impl BuildStatus {
+    fn format_as_vec(&self) -> Vec<ColoredString> {
+        let mut row = Vec::new();
+        let icon = ColoredString::from(&self.icon);
+        let status = match (self.evals, self.success) {
+            (false, _) => format!("{icon} {}", self.status),
+            (true, false) => format!("{icon} ({})", self.status),
+            (true, true) => format!("{icon}"),
+        };
+        row.push(status.into());
+        let details = if self.evals {
+            let name = self.name.clone().unwrap_or_default().into();
+            let timestamp = self
+                .timestamp
+                .clone()
+                .unwrap_or_default()
+                .split_once('T')
+                .unwrap_or_default()
+                .0
+                .into();
+            let build_url = self.build_url.clone().unwrap_or_default().dimmed();
+            &[name, timestamp, build_url]
+        } else {
+            &Default::default()
+        };
+        row.extend_from_slice(details);
+        row
+    }
 }
 
 /// Container for the build status and metadata of a package
@@ -178,7 +208,7 @@ impl<'a> PackageStatus<'a> {
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
         for build in stat.builds {
-            table.add_row(build.as_vec());
+            table.add_row(build.format_as_vec());
             if stat.args.short {
                 break;
             }
@@ -191,93 +221,3 @@ impl<'a> PackageStatus<'a> {
         Ok(title + table.to_string().as_str())
     }
 }
-
-impl BuildStatus {
-    fn as_vec(&self) -> Vec<ColoredString> {
-        let mut row = Vec::new();
-        let icon = ColoredString::from(&self.icon);
-        let status = match (self.evals, self.success) {
-            (false, _) => format!("{icon} {}", self.status),
-            (true, false) => format!("{icon} ({})", self.status),
-            (true, true) => format!("{icon}"),
-        };
-        row.push(status.into());
-        let details = if self.evals {
-            let name = self.name.clone().unwrap_or_default().into();
-            let timestamp = self
-                .timestamp
-                .clone()
-                .unwrap_or_default()
-                .split_once('T')
-                .unwrap_or_default()
-                .0
-                .into();
-            let build_url = self.build_url.clone().unwrap_or_default().dimmed();
-            &[name, timestamp, build_url]
-        } else {
-            &Default::default()
-        };
-        row.extend_from_slice(details);
-        row
-    }
-}
-
-#[derive(SerializeDisplay, Debug, Clone, Default)]
-enum StatusIcon {
-    Success,
-    Failure,
-    Cancelled,
-    Queued,
-    #[default]
-    Warning,
-}
-
-impl From<&StatusIcon> for ColoredString {
-    fn from(icon: &StatusIcon) -> Self {
-        match icon {
-            StatusIcon::Success => "✔".green(),
-            StatusIcon::Failure => "✖".red(),
-            StatusIcon::Cancelled => "⏹".red(),
-            StatusIcon::Queued => "⧖".yellow(),
-            StatusIcon::Warning => "⚠".yellow(),
-        }
-    }
-}
-
-impl Display for StatusIcon {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let icon = ColoredString::from(self).normal();
-        write!(f, "{icon}")
-    }
-}
-
-#[test]
-fn serialize_success_icon() {
-    let success_icon = serde_json::to_string(&StatusIcon::Success).unwrap();
-    debug_assert_eq!(success_icon, r#""✔""#)
-}
-
-// #[test]
-// fn fetch_and_parse() -> anyhow::Result<()> {
-//     use crate::Args;
-//     use clap::Parser;
-//     let args = Args::parse_from([
-//         "hydra-check",
-//         "--channel",
-//         "staging-next",
-//         "coreutils",
-//         "rust-cbindgen",
-//         // "--json",
-//         // "--short",
-//     ])
-//     .guess_all_args()
-//     .unwrap();
-//     for (idx, package) in args.queries.iter().enumerate() {
-//         let pkg_stat = PackageStatus::from_package_with_args(package, &args);
-//         if idx > 0 {
-//             println!("");
-//         }
-//         println!("{}", pkg_stat.fetch_and_format()?);
-//     }
-//     Ok(())
-// }
