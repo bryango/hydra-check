@@ -740,6 +740,7 @@ dependencies = [
  "clap",
  "colored",
  "comfy-table",
+ "ego-tree",
  "flexi_logger",
  "log",
  "regex",
