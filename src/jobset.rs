@@ -1,5 +1,6 @@
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
+use comfy_table::Table;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -41,14 +42,20 @@ impl EvalStatus {
                 (StatusIcon::Failed, self.failed),
                 (StatusIcon::Queued, self.queued),
             ];
-            let [suceeded, failed, queued] = statistics
-                .map(|(icon, text)| format!("{} {}", icon, text.unwrap_or_default()).normal());
+            let [suceeded, failed, queued] = statistics.map(|(icon, text)| -> ColoredString {
+                format!(
+                    "{} {}",
+                    ColoredString::from(&icon),
+                    text.unwrap_or_default()
+                )
+                .into()
+            });
             let queued = match self.queued.unwrap_or_default() {
                 x if x != 0 => queued.bold(),
                 _ => queued.normal(),
             };
             let delta = format!("Δ {}", self.delta.clone().unwrap_or_default());
-            let delta = match self.delta.clone().unwrap_or_default() {
+            let delta = match self.delta.clone().unwrap_or("?".into()) {
                 x if x.starts_with("+") => delta.green(),
                 x if x.starts_with("-") => delta.red(),
                 _ => delta.into(),
@@ -101,10 +108,6 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
 }
 
 impl<'a> JobsetStatus<'a> {
-    fn jobset(&self) -> &str {
-        self.args.jobset.as_str()
-    }
-
     fn fetch_and_parse(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc) {
@@ -161,6 +164,10 @@ impl<'a> JobsetStatus<'a> {
                     true => Ok(0),
                     false => text.parse(),
                 });
+            let delta = match delta {
+                x if x.is_empty() => None,
+                x => Some(x),
+            };
 
             let finished = queued == Ok(0);
             let icon = match finished {
@@ -182,9 +189,39 @@ impl<'a> JobsetStatus<'a> {
                 succeeded: Some(succeeded?),
                 failed: Some(failed?),
                 queued: Some(queued?),
-                delta: Some(delta.into()),
+                delta,
             })
         }
         Ok(Self { evals, ..self })
+    }
+
+    pub fn fetch_and_format(self) -> anyhow::Result<String> {
+        if self.args.url {
+            return Ok(self.get_url().into());
+        }
+        let stat = self.fetch_and_parse()?;
+        if stat.args.json {
+            let json_string = serde_json::to_string_pretty(&stat.evals)?;
+            return Ok(json_string);
+        }
+        let title = format!(
+            "Evaluations of jobset {} {}",
+            stat.args.jobset.bold(),
+            format!("@ {}", stat.get_url()).dimmed()
+        );
+        let mut table = Table::new();
+        table.load_preset(comfy_table::presets::NOTHING);
+        for eval in stat.evals {
+            table.add_row(eval.format_as_vec());
+            if stat.args.short {
+                break;
+            }
+        }
+        for column in table.column_iter_mut() {
+            column.set_padding((0, 1));
+            // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
+            break; // only for the first column
+        }
+        Ok(format!("{}\n{}", title, table.trim_fmt()))
     }
 }

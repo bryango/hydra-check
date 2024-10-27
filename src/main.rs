@@ -1,4 +1,4 @@
-use hydra_check::{Args, PackageStatus, Queries, ResolvedArgs};
+use hydra_check::{Args, JobsetStatus, PackageStatus, Queries, ResolvedArgs};
 use std::borrow::Borrow;
 
 fn query_packages(packages: &Vec<String>, args: &ResolvedArgs) -> anyhow::Result<bool> {
@@ -17,10 +17,17 @@ fn query_packages(packages: &Vec<String>, args: &ResolvedArgs) -> anyhow::Result
     Ok(status)
 }
 
+fn query_jobset(args: &ResolvedArgs) -> anyhow::Result<bool> {
+    let jobset_stat = JobsetStatus::from(args);
+    let output = jobset_stat.fetch_and_format()?;
+    println!("{}", output);
+    Ok(true)
+}
+
 fn main() -> anyhow::Result<()> {
     let args = Args::parse_and_guess()?;
     let success = match args.queries.borrow() {
-        Queries::Jobset => todo!(),
+        Queries::Jobset => query_jobset(&args)?,
         Queries::Packages(packages) => query_packages(packages, &args)?,
         Queries::Evals(evals) => todo!(),
     };
