@@ -12,6 +12,7 @@ pub use args::{Queries, ResolvedArgs};
 pub use builds::{BuildStatus, PackageStatus};
 use colored::{ColoredString, Colorize};
 use fetch_stable::NixpkgsChannelVersion;
+pub use jobset::JobsetStatus;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};
