@@ -18,8 +18,8 @@ pub use soup::{SoupFind, TryAttr};
 
 #[derive(SerializeDisplay, Debug, Clone, Default)]
 enum StatusIcon {
-    Success,
-    Failure,
+    Succeeded,
+    Failed,
     Cancelled,
     Queued,
     #[default]
@@ -29,8 +29,8 @@ enum StatusIcon {
 impl From<&StatusIcon> for ColoredString {
     fn from(icon: &StatusIcon) -> Self {
         match icon {
-            StatusIcon::Success => "✔".green(),
-            StatusIcon::Failure => "✖".red(),
+            StatusIcon::Succeeded => "✔".green(),
+            StatusIcon::Failed => "✖".red(),
             StatusIcon::Cancelled => "⏹".red(),
             StatusIcon::Queued => "⧖".yellow(),
             StatusIcon::Warning => "⚠".yellow(),
@@ -45,7 +45,7 @@ impl std::fmt::Display for StatusIcon {
     }
 }
 
-trait FetchData: Sized {
+trait FetchData: Sized + Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
@@ -58,9 +58,11 @@ trait FetchData: Sized {
         Ok(Html::parse_document(&document))
     }
 
+    fn finish_with_error(self, status: String) -> Self;
+
     /// Checks if the fetched [Html] contains a `tbody` tag (table body).
     /// If not, returns the alert text. If yes, returns the found element.
-    fn find_tbody<'a>(&self, doc: &'a Html) -> Result<ElementRef<'a>, String> {
+    fn find_tbody<'a>(&self, doc: &'a Html) -> Result<ElementRef<'a>, Self> {
         match doc.find("tbody") {
             Err(_) => {
                 // either the package was not evaluated (due to being e.g. unfree)
@@ -73,10 +75,19 @@ trait FetchData: Sized {
                 // sanitize the text a little bit
                 let status: Vec<&str> = status.lines().map(str::trim).collect();
                 let status: String = status.join(" ");
-                Err(status)
+                Err(self.clone().finish_with_error(status))
             }
             Ok(tbody) => Ok(tbody),
         }
+    }
+
+    fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
+        let skipable = row
+            .find("td")?
+            .find("a")?
+            .try_attr("href")?
+            .ends_with("/all");
+        Ok(skipable)
     }
 }
 
@@ -97,6 +108,6 @@ fn log_format(
 
 #[test]
 fn serialize_success_icon() {
-    let success_icon = serde_json::to_string(&StatusIcon::Success).unwrap();
+    let success_icon = serde_json::to_string(&StatusIcon::Succeeded).unwrap();
     debug_assert_eq!(success_icon, r#""✔""#)
 }

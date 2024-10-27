@@ -7,8 +7,8 @@ use serde_with::skip_serializing_none;
 use crate::{FetchData, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
-#[derive(Serialize, Debug, Default)]
-/// Status of a single build attempt, can be serialized a JSON entry
+#[derive(Serialize, Debug, Default, Clone)]
+/// Status of a single build attempt, can be serialized to a JSON entry
 pub struct BuildStatus {
     icon: StatusIcon,
     pub success: bool,
@@ -51,6 +51,7 @@ impl BuildStatus {
     }
 }
 
+#[derive(Clone)]
 /// Container for the build status and metadata of a package
 pub struct PackageStatus<'a> {
     package: &'a str,
@@ -63,6 +64,17 @@ pub struct PackageStatus<'a> {
 impl FetchData for PackageStatus<'_> {
     fn get_url(&self) -> &str {
         &self.url
+    }
+
+    fn finish_with_error(self, status: String) -> Self {
+        Self {
+            builds: vec![BuildStatus {
+                icon: StatusIcon::Warning,
+                status,
+                ..Default::default()
+            }],
+            ..self
+        }
     }
 }
 
@@ -90,32 +102,18 @@ impl<'a> PackageStatus<'a> {
     fn fetch_and_parse(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc) {
-            Err(status) => {
-                return Ok(Self {
-                    builds: vec![BuildStatus {
-                        icon: StatusIcon::Warning,
-                        status,
-                        ..Default::default()
-                    }],
-                    ..self
-                });
-            }
+            Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
         let mut builds: Vec<BuildStatus> = Vec::new();
         for row in tbody.find_all("tr") {
             let columns = row.find_all("td");
             let [status, build, timestamp, name, arch] = columns.as_slice() else {
-                if row
-                    .find("td")?
-                    .find("a")?
-                    .try_attr("href")?
-                    .ends_with("/all")
-                {
+                if Self::is_skipable_row(row)? {
                     continue;
                 } else {
                     bail!(
-                        "error while parsing Hydra status for package {}: {:?}",
+                        "error while parsing Hydra status for package '{}': {:?}",
                         self.package,
                         row
                     );
@@ -144,9 +142,9 @@ impl<'a> PackageStatus<'a> {
             let arch = arch.find("tt")?.text().collect();
             let success = status == "Succeeded";
             let icon = match (success, status) {
-                (true, _) => StatusIcon::Success,
+                (true, _) => StatusIcon::Succeeded,
                 (false, "Cancelled") => StatusIcon::Cancelled,
-                (false, _) => StatusIcon::Failure,
+                (false, _) => StatusIcon::Failed,
             };
             let evals = true;
             builds.push(BuildStatus {
