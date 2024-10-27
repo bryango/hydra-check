@@ -1,4 +1,5 @@
 use anyhow::bail;
+use colored::{ColoredString, Colorize};
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -22,6 +23,44 @@ pub struct EvalStatus {
     failed: Option<u64>,
     queued: Option<u64>,
     delta: Option<String>,
+}
+
+impl EvalStatus {
+    fn format_as_vec(&self) -> Vec<ColoredString> {
+        let mut row = Vec::new();
+        let icon = ColoredString::from(&self.icon);
+        let description = match &self.input_changes {
+            Some(x) => x,
+            None => &self.status,
+        };
+        row.push(format!("{icon} {description}").into());
+        let details = if self.url.is_some() {
+            let relative = self.relative.clone().unwrap_or_default().into();
+            let statistics = [
+                (StatusIcon::Succeeded, self.succeeded),
+                (StatusIcon::Failed, self.failed),
+                (StatusIcon::Queued, self.queued),
+            ];
+            let [suceeded, failed, queued] = statistics
+                .map(|(icon, text)| format!("{} {}", icon, text.unwrap_or_default()).normal());
+            let queued = match self.queued.unwrap_or_default() {
+                x if x != 0 => queued.bold(),
+                _ => queued.normal(),
+            };
+            let delta = format!("Δ {}", self.delta.clone().unwrap_or_default());
+            let delta = match self.delta.clone().unwrap_or_default() {
+                x if x.starts_with("+") => delta.green(),
+                x if x.starts_with("-") => delta.red(),
+                _ => delta.into(),
+            };
+            let url = self.url.clone().unwrap_or_default().dimmed();
+            &[relative, suceeded, failed, queued, delta, url]
+        } else {
+            &Default::default()
+        };
+        row.extend_from_slice(details);
+        row
+    }
 }
 
 #[derive(Clone)]
