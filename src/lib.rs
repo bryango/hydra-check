@@ -7,8 +7,7 @@ mod soup;
 
 use std::time::Duration;
 
-pub use args::Args;
-pub use args::{Queries, ResolvedArgs};
+pub use args::{Cli, ResolvedArgs};
 pub use builds::{BuildStatus, PackageStatus};
 use colored::{ColoredString, Colorize};
 use fetch_stable::NixpkgsChannelVersion;

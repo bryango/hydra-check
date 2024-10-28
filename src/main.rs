@@ -1,13 +1,7 @@
-use hydra_check::{Args, Queries};
-use std::borrow::Borrow;
+use hydra_check::Cli;
 
 fn main() -> anyhow::Result<()> {
-    let args = Args::parse_and_guess()?;
-    let success = match args.queries.borrow() {
-        Queries::Jobset => args.fetch_and_print_jobset()?,
-        Queries::Packages(packages) => args.fetch_and_print_packages(packages)?,
-        Queries::Evals(evals) => todo!(),
-    };
+    let success = Cli::parse_and_guess()?.fetch_and_print()?;
     if !success {
         std::process::exit(1);
     }

@@ -44,7 +44,7 @@ pub enum Queries {
 ///   - https://hydra.nixos.org/project/nixos
 ///   - https://hydra.nixos.org/project/nixpkgs
 ///
-pub struct Args {
+pub struct Cli {
     #[arg(id = "PACKAGES")]
     queries: Vec<String>,
 
@@ -85,14 +85,14 @@ pub struct Args {
 #[derive(Debug)]
 pub struct ResolvedArgs {
     /// List of packages or evals to query
-    pub queries: Queries,
+    pub(crate) queries: Queries,
     pub(crate) url: bool,
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) jobset: String,
 }
 
-impl Args {
+impl Cli {
     fn guess_arch(self) -> Self {
         let warn_if_unknown = |arch: &str| {
             if !Vec::from(constants::KNOWN_ARCHITECTURES).contains(&arch) {
@@ -284,6 +284,16 @@ impl Args {
     }
 }
 
+impl ResolvedArgs {
+    pub fn fetch_and_print(&self) -> anyhow::Result<bool> {
+        match &self.queries {
+            Queries::Jobset => self.fetch_and_print_jobset(),
+            Queries::Packages(packages) => self.fetch_and_print_packages(&packages),
+            Queries::Evals(evals) => todo!(),
+        }
+    }
+}
+
 #[test]
 fn guess_jobset() {
     let aliases = [
@@ -293,7 +303,7 @@ fn guess_jobset() {
     ];
     for (channel, jobset) in aliases {
         eprintln!("{channel} => {jobset}");
-        let args = Args::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
+        let args = Cli::parse_from(["hydra-check", "--channel", channel]).guess_jobset();
         debug_assert_eq!(args.jobset, Some(jobset.into()))
     }
 }
@@ -301,6 +311,6 @@ fn guess_jobset() {
 #[test]
 #[ignore = "require internet connection"]
 fn guess_stable() {
-    let args = Args::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
+    let args = Cli::parse_from(["hydra-check", "--channel", "stable"]).guess_jobset();
     eprintln!("{:?}", args.jobset)
 }
