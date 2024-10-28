@@ -8,10 +8,8 @@ mod soup;
 use std::time::Duration;
 
 pub use args::{Cli, ResolvedArgs};
-pub use builds::{BuildStatus, PackageStatus};
 use colored::{ColoredString, Colorize};
 use fetch_stable::NixpkgsChannelVersion;
-pub use jobset::JobsetStatus;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};
@@ -45,7 +43,7 @@ impl std::fmt::Display for StatusIcon {
     }
 }
 
-trait FetchData: Sized + Clone {
+trait FetchHydra: Sized + Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()

@@ -6,7 +6,7 @@ use comfy_table::Table;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{FetchData, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
@@ -77,14 +77,14 @@ impl EvalStatus {
 
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
-pub struct JobsetStatus<'a> {
+struct JobsetStatus<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
-    pub evals: Vec<EvalStatus>,
+    evals: Vec<EvalStatus>,
 }
 
-impl FetchData for JobsetStatus<'_> {
+impl FetchHydra for JobsetStatus<'_> {
     fn get_url(&self) -> &str {
         &self.url
     }
@@ -202,7 +202,7 @@ impl<'a> JobsetStatus<'a> {
 }
 
 impl ResolvedArgs {
-    pub fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
+    pub(crate) fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
         let stat = JobsetStatus::from(self);
         if self.url {
             println!("{}", stat.get_url());

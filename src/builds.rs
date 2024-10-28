@@ -6,14 +6,14 @@ use comfy_table::Table;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{FetchData, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single build attempt, can be serialized to a JSON entry
-pub struct BuildStatus {
+struct BuildStatus {
     icon: StatusIcon,
-    pub success: bool,
+    success: bool,
     status: String,
     timestamp: Option<String>,
     build_id: Option<String>,
@@ -55,14 +55,14 @@ impl BuildStatus {
 
 #[derive(Clone)]
 /// Container for the build status and metadata of a package
-pub struct PackageStatus<'a> {
+struct PackageStatus<'a> {
     package: &'a str,
     url: String,
     /// Status of recent builds of the package
-    pub builds: Vec<BuildStatus>,
+    builds: Vec<BuildStatus>,
 }
 
-impl FetchData for PackageStatus<'_> {
+impl FetchHydra for PackageStatus<'_> {
     fn get_url(&self) -> &str {
         &self.url
     }
@@ -166,7 +166,7 @@ impl<'a> PackageStatus<'a> {
 impl ResolvedArgs {
     /// Fetches packages build status from hydra.nixos.org and prints
     /// the result according to the command line specs.
-    pub fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
+    pub(crate) fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
         let mut status = true;
         let mut hashmap = HashMap::new();
         for (idx, package) in packages.iter().enumerate() {
