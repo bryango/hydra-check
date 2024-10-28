@@ -57,7 +57,6 @@ impl BuildStatus {
 /// Container for the build status and metadata of a package
 pub struct PackageStatus<'a> {
     package: &'a str,
-    args: &'a ResolvedArgs,
     url: String,
     /// Status of recent builds of the package
     pub builds: Vec<BuildStatus>,
@@ -95,7 +94,6 @@ impl<'a> PackageStatus<'a> {
         let url = format!("https://hydra.nixos.org/job/{}/{}", args.jobset, package);
         Self {
             package,
-            args,
             url,
             builds: vec![],
         }
@@ -202,18 +200,17 @@ impl ResolvedArgs {
             println!(
                 "Build Status for {} on jobset {}{}",
                 stat.package.bold(),
-                stat.args.jobset.bold(),
-                match stat.args.short && success {
+                self.jobset.bold(),
+                match self.short && success {
                     true => "".into(),
                     false => format!("\n{}", stat.get_url().dimmed()),
                 }
             );
-
             let mut table = Table::new();
             table.load_preset(comfy_table::presets::NOTHING);
             for build in stat.builds {
                 table.add_row(build.format_as_vec());
-                if stat.args.short {
+                if self.short {
                     break;
                 }
             }

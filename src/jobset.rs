@@ -78,7 +78,7 @@ impl EvalStatus {
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
 pub struct JobsetStatus<'a> {
-    args: &'a ResolvedArgs,
+    jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
     pub evals: Vec<EvalStatus>,
@@ -105,7 +105,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
     fn from(args: &'a ResolvedArgs) -> Self {
         let url = format!("https://hydra.nixos.org/jobset/{}/evals", args.jobset);
         Self {
-            args,
+            jobset: &args.jobset,
             url,
             evals: vec![],
         }
@@ -130,7 +130,7 @@ impl<'a> JobsetStatus<'a> {
                 } else {
                     bail!(
                         "error while parsing Hydra status for jobset '{}': {:?}",
-                        self.args.jobset,
+                        self.jobset,
                         row
                     );
                 }
@@ -199,37 +199,41 @@ impl<'a> JobsetStatus<'a> {
         }
         Ok(Self { evals, ..self })
     }
+}
 
-    pub fn fetch_and_format(self) -> anyhow::Result<String> {
-        if self.args.url {
-            return Ok(self.get_url().into());
+impl ResolvedArgs {
+    pub fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
+        let stat = JobsetStatus::from(self);
+        if self.url {
+            println!("{}", stat.get_url());
+            return Ok(true);
         }
-        let stat = self.fetch_and_parse()?;
-        if stat.args.json {
+        let stat = stat.fetch_and_parse()?;
+        if self.json {
             let mut hashmap = HashMap::new();
-            match stat.args.short {
+            match self.short {
                 true => hashmap.insert(
-                    &stat.args.jobset,
+                    &stat.jobset,
                     match stat.evals.get(0) {
                         Some(x) => vec![x.to_owned()],
                         None => vec![],
                     },
                 ),
-                false => hashmap.insert(&stat.args.jobset, stat.evals),
+                false => hashmap.insert(&stat.jobset, stat.evals),
             };
-            let json_string = serde_json::to_string_pretty(&hashmap)?;
-            return Ok(json_string);
+            println!("{}", serde_json::to_string_pretty(&hashmap)?);
+            return Ok(true);
         }
-        let title = format!(
+        println!(
             "Evaluations of jobset {} {}",
-            stat.args.jobset.bold(),
+            self.jobset.bold(),
             format!("@ {}", stat.get_url()).dimmed()
         );
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
         for eval in stat.evals {
             table.add_row(eval.format_as_vec());
-            if stat.args.short {
+            if self.short {
                 break;
             }
         }
@@ -238,15 +242,7 @@ impl<'a> JobsetStatus<'a> {
             // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
             break; // only for the first column
         }
-        Ok(format!("{}\n{}", title, table.trim_fmt()))
-    }
-}
-
-impl ResolvedArgs {
-    pub fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
-        let jobset_stat = JobsetStatus::from(self);
-        let output = jobset_stat.fetch_and_format()?;
-        println!("{}", output);
+        println!("{}", table.trim_fmt());
         Ok(true)
     }
 }
