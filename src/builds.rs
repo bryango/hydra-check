@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
@@ -161,42 +163,70 @@ impl<'a> PackageStatus<'a> {
         }
         Ok(Self { builds, ..self })
     }
+}
 
-    /// Fetches the package build status from hydra.nixos.org and formats
+impl ResolvedArgs {
+    /// Fetches packages build status from hydra.nixos.org and prints
     /// the result according to the command line specs.
-    pub fn fetch_and_format(self) -> anyhow::Result<(bool, String)> {
-        if self.args.url {
-            return Ok((true, self.get_url().into()));
-        }
-        let stat = self.fetch_and_parse()?;
-        let success = stat.builds.get(0).is_some_and(|build| build.success);
-        if stat.args.json {
-            let json_string = serde_json::to_string_pretty(&stat.builds)?;
-            return Ok((success, json_string));
-        }
-        let title = format!(
-            "Build Status for {} on jobset {}{}",
-            stat.package.bold(),
-            stat.args.jobset.bold(),
-            match stat.args.short && success {
-                true => "".into(),
-                false => format!("\n{}", stat.get_url().dimmed()),
+    pub fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
+        let mut status = true;
+        let mut hashmap = HashMap::new();
+        for (idx, package) in packages.iter().enumerate() {
+            let stat = PackageStatus::from_package_with_args(package, self);
+            if self.url {
+                println!("{}", stat.get_url());
+                continue;
             }
-        );
+            let stat = stat.fetch_and_parse()?;
+            let first_stat = stat.builds.get(0);
+            let success = first_stat.is_some_and(|build| build.success);
+            if !success {
+                status = false;
+            }
+            if self.json {
+                match self.short {
+                    true => hashmap.insert(
+                        stat.package,
+                        match first_stat {
+                            Some(x) => vec![x.to_owned()],
+                            None => vec![],
+                        },
+                    ),
+                    false => hashmap.insert(stat.package, stat.builds),
+                };
+                continue; // print later
+            }
+            if idx > 0 && !self.short {
+                println!("");
+            }
+            println!(
+                "Build Status for {} on jobset {}{}",
+                stat.package.bold(),
+                stat.args.jobset.bold(),
+                match stat.args.short && success {
+                    true => "".into(),
+                    false => format!("\n{}", stat.get_url().dimmed()),
+                }
+            );
 
-        let mut table = Table::new();
-        table.load_preset(comfy_table::presets::NOTHING);
-        for build in stat.builds {
-            table.add_row(build.format_as_vec());
-            if stat.args.short {
-                break;
+            let mut table = Table::new();
+            table.load_preset(comfy_table::presets::NOTHING);
+            for build in stat.builds {
+                table.add_row(build.format_as_vec());
+                if stat.args.short {
+                    break;
+                }
             }
+            for column in table.column_iter_mut() {
+                column.set_padding((0, 1));
+                // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
+                break; // only for the first column
+            }
+            println!("{}", table.trim_fmt())
         }
-        for column in table.column_iter_mut() {
-            column.set_padding((0, 1));
-            // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
-            break; // only for the first column
+        if self.json {
+            println!("{}", serde_json::to_string_pretty(&hashmap)?);
         }
-        Ok((success, format!("{}\n{}", title, table.trim_fmt())))
+        Ok(status)
     }
 }

@@ -76,7 +76,7 @@ pub struct Args {
     #[arg(short, long)]
     eval: bool,
 
-    /// Print more information
+    /// Print more debugging information
     #[arg(short, long)]
     verbose: bool,
 }
