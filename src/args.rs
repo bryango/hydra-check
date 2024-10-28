@@ -10,13 +10,13 @@ use std::{
 use crate::{constants, log_format, NixpkgsChannelVersion};
 
 #[derive(Debug, Clone)]
-pub struct Evaluation {
+pub(crate) struct Evaluation {
     id: u64,
     filter: Option<String>,
 }
 
 #[derive(Debug, Clone)]
-pub enum Queries {
+pub(crate) enum Queries {
     Jobset,
     Packages(Vec<String>),
     Evals(Vec<Evaluation>),
@@ -83,7 +83,7 @@ pub struct Cli {
 
 /// Resolved command line arguments, with all options normalized and unwrapped
 #[derive(Debug)]
-pub struct ResolvedArgs {
+pub(crate) struct ResolvedArgs {
     /// List of packages or evals to query
     pub(crate) queries: Queries,
     pub(crate) url: bool,
@@ -251,13 +251,12 @@ impl Cli {
 
     /// Parses the command line flags and provides an educated guess
     /// for the missing arguments. Also sets the log level.
-    pub fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
+    pub(crate) fn parse_and_guess() -> anyhow::Result<ResolvedArgs> {
         let args = Self::parse();
         args.guess_all_args()
     }
 
-    /// Guesses all relevant command line arguments. This is intended for
-    /// internal use only; try [`Args::parse_and_guess()`] instead.
+    /// Guesses all relevant command line arguments.
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
         let log_level = match args.verbose {
@@ -282,10 +281,17 @@ impl Cli {
                 .expect("jobset should be resolved by `guess_jobset()`"),
         })
     }
+
+    /// Runs the program and provides an exit code (with possible errors).
+    pub fn execute() -> anyhow::Result<bool> {
+        Self::parse_and_guess()?.fetch_and_print()
+    }
 }
 
 impl ResolvedArgs {
-    pub fn fetch_and_print(&self) -> anyhow::Result<bool> {
+    /// Fetches build or evaluation status from hydra.nixos.org
+    /// and prints the result according to the command line specs.
+    pub(crate) fn fetch_and_print(&self) -> anyhow::Result<bool> {
         match &self.queries {
             Queries::Jobset => self.fetch_and_print_jobset(),
             Queries::Packages(packages) => self.fetch_and_print_packages(&packages),

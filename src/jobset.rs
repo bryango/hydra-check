@@ -11,7 +11,7 @@ use crate::{FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single evaluation, can be serialized to a JSON entry
-pub struct EvalStatus {
+struct EvalStatus {
     icon: StatusIcon,
     finished: Option<bool>,
     id: Option<u64>,
@@ -113,7 +113,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
 }
 
 impl<'a> JobsetStatus<'a> {
-    fn fetch_and_parse(self) -> anyhow::Result<Self> {
+    fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc) {
             Err(stat) => return Ok(stat),
@@ -208,7 +208,7 @@ impl ResolvedArgs {
             println!("{}", stat.get_url());
             return Ok(true);
         }
-        let stat = stat.fetch_and_parse()?;
+        let stat = stat.fetch_and_read()?;
         if self.json {
             let mut hashmap = HashMap::new();
             match self.short {

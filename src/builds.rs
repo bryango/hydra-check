@@ -82,7 +82,7 @@ impl FetchHydra for PackageStatus<'_> {
 impl<'a> PackageStatus<'a> {
     /// Initializes the status container with the resolved package name
     /// and the resolved command line arguments.
-    pub fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
+    fn from_package_with_args(package: &'a str, args: &'a ResolvedArgs) -> Self {
         //
         // Examples:
         // - https://hydra.nixos.org/job/nixos/release-19.09/nixpkgs.hello.x86_64-linux/latest
@@ -99,7 +99,7 @@ impl<'a> PackageStatus<'a> {
         }
     }
 
-    fn fetch_and_parse(self) -> anyhow::Result<Self> {
+    fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc) {
             Err(stat) => return Ok(stat),
@@ -164,8 +164,6 @@ impl<'a> PackageStatus<'a> {
 }
 
 impl ResolvedArgs {
-    /// Fetches packages build status from hydra.nixos.org and prints
-    /// the result according to the command line specs.
     pub(crate) fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
         let mut status = true;
         let mut hashmap = HashMap::new();
@@ -175,7 +173,7 @@ impl ResolvedArgs {
                 println!("{}", stat.get_url());
                 continue;
             }
-            let stat = stat.fetch_and_parse()?;
+            let stat = stat.fetch_and_read()?;
             let first_stat = stat.builds.get(0);
             let success = first_stat.is_some_and(|build| build.success);
             if !success {

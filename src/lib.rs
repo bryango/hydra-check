@@ -7,9 +7,10 @@ mod soup;
 
 use std::time::Duration;
 
-pub use args::{Cli, ResolvedArgs};
+pub use args::Cli;
+use args::ResolvedArgs;
 use colored::{ColoredString, Colorize};
-use fetch_stable::NixpkgsChannelVersion;
+pub use fetch_stable::NixpkgsChannelVersion;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};

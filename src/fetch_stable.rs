@@ -5,7 +5,7 @@ use serde::Deserialize;
 
 use crate::{SoupFind, TryAttr};
 
-/// Currently supported Nixpkgs channel version.
+/// Currently supported Nixpkgs channel version
 ///
 /// This provides a extremely hacky way of obtaining the latest release
 /// number (e.g. 24.05) of Nixpkgs, by parsing the manual on nixos.org.
