@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
@@ -204,7 +206,18 @@ impl<'a> JobsetStatus<'a> {
         }
         let stat = self.fetch_and_parse()?;
         if stat.args.json {
-            let json_string = serde_json::to_string_pretty(&stat.evals)?;
+            let mut hashmap = HashMap::new();
+            match stat.args.short {
+                true => hashmap.insert(
+                    &stat.args.jobset,
+                    match stat.evals.get(0) {
+                        Some(x) => vec![x.to_owned()],
+                        None => vec![],
+                    },
+                ),
+                false => hashmap.insert(&stat.args.jobset, stat.evals),
+            };
+            let json_string = serde_json::to_string_pretty(&hashmap)?;
             return Ok(json_string);
         }
         let title = format!(
@@ -226,5 +239,14 @@ impl<'a> JobsetStatus<'a> {
             break; // only for the first column
         }
         Ok(format!("{}\n{}", title, table.trim_fmt()))
+    }
+}
+
+impl ResolvedArgs {
+    pub fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
+        let jobset_stat = JobsetStatus::from(self);
+        let output = jobset_stat.fetch_and_format()?;
+        println!("{}", output);
+        Ok(true)
     }
 }
