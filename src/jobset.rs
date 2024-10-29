@@ -2,11 +2,10 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
-use comfy_table::Table;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
@@ -28,7 +27,7 @@ struct EvalStatus {
     delta: Option<String>,
 }
 
-impl EvalStatus {
+impl FormatVecColored for EvalStatus {
     fn format_as_vec(&self) -> Vec<ColoredString> {
         let mut row = Vec::new();
         let icon = ColoredString::from(&self.icon);
@@ -85,8 +84,18 @@ struct JobsetStatus<'a> {
 }
 
 impl FetchHydra for JobsetStatus<'_> {
+    type Status = EvalStatus;
+
+    fn name(&self) -> &str {
+        &self.jobset
+    }
+
     fn get_url(&self) -> &str {
         &self.url
+    }
+
+    fn entries(&self) -> &Vec<Self::Status> {
+        &self.evals
     }
 
     fn finish_with_error(self, status: String) -> Self {
@@ -103,6 +112,10 @@ impl FetchHydra for JobsetStatus<'_> {
 
 impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
     fn from(args: &'a ResolvedArgs) -> Self {
+        //
+        // https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
+        // https://hydra.nixos.org/eval/1809297
+        //
         let url = format!("https://hydra.nixos.org/jobset/{}/evals", args.jobset);
         Self {
             jobset: &args.jobset,
@@ -229,20 +242,7 @@ impl ResolvedArgs {
             self.jobset.bold(),
             format!("@ {}", stat.get_url()).dimmed()
         );
-        let mut table = Table::new();
-        table.load_preset(comfy_table::presets::NOTHING);
-        for eval in stat.evals {
-            table.add_row(eval.format_as_vec());
-            if self.short {
-                break;
-            }
-        }
-        for column in table.column_iter_mut() {
-            column.set_padding((0, 1));
-            // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
-            break; // only for the first column
-        }
-        println!("{}", table.trim_fmt());
+        println!("{}", stat.format_table(self.short));
         Ok(true)
     }
 }

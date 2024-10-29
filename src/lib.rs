@@ -10,6 +10,7 @@ use std::time::Duration;
 pub use args::Cli;
 use args::ResolvedArgs;
 use colored::{ColoredString, Colorize};
+use comfy_table::Table;
 pub use fetch_stable::NixpkgsChannelVersion;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
@@ -44,8 +45,16 @@ impl std::fmt::Display for StatusIcon {
     }
 }
 
+trait FormatVecColored {
+    fn format_as_vec(&self) -> Vec<ColoredString>;
+}
+
 trait FetchHydra: Sized + Clone {
+    type Status: FormatVecColored;
+
+    fn name(&self) -> &str;
     fn get_url(&self) -> &str;
+    fn entries(&self) -> &Vec<Self::Status>;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(20))
@@ -87,6 +96,23 @@ trait FetchHydra: Sized + Clone {
             .try_attr("href")?
             .ends_with("/all");
         Ok(skipable)
+    }
+
+    fn format_table(&self, short: bool) -> String {
+        let mut table = Table::new();
+        table.load_preset(comfy_table::presets::NOTHING);
+        for entry in self.entries() {
+            table.add_row(entry.format_as_vec());
+            if short {
+                break;
+            }
+        }
+        for column in table.column_iter_mut() {
+            column.set_padding((0, 1));
+            // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
+            break; // only for the first column
+        }
+        table.trim_fmt()
     }
 }
 

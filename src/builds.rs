@@ -2,11 +2,10 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
-use comfy_table::Table;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
@@ -23,7 +22,7 @@ struct BuildStatus {
     evals: bool,
 }
 
-impl BuildStatus {
+impl FormatVecColored for BuildStatus {
     fn format_as_vec(&self) -> Vec<ColoredString> {
         let mut row = Vec::new();
         let icon = ColoredString::from(&self.icon);
@@ -63,13 +62,23 @@ struct PackageStatus<'a> {
 }
 
 impl FetchHydra for PackageStatus<'_> {
+    type Status = BuildStatus;
+
+    fn name(&self) -> &str {
+        &self.package
+    }
+
     fn get_url(&self) -> &str {
         &self.url
     }
 
+    fn entries(&self) -> &Vec<Self::Status> {
+        &self.builds
+    }
+
     fn finish_with_error(self, status: String) -> Self {
         Self {
-            builds: vec![BuildStatus {
+            builds: vec![Self::Status {
                 icon: StatusIcon::Warning,
                 status,
                 ..Default::default()
@@ -204,20 +213,7 @@ impl ResolvedArgs {
                     false => format!("\n{}", stat.get_url().dimmed()),
                 }
             );
-            let mut table = Table::new();
-            table.load_preset(comfy_table::presets::NOTHING);
-            for build in stat.builds {
-                table.add_row(build.format_as_vec());
-                if self.short {
-                    break;
-                }
-            }
-            for column in table.column_iter_mut() {
-                column.set_padding((0, 1));
-                // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
-                break; // only for the first column
-            }
-            println!("{}", table.trim_fmt())
+            println!("{}", stat.format_table(self.short));
         }
         if self.json {
             println!("{}", serde_json::to_string_pretty(&hashmap)?);
