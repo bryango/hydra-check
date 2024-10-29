@@ -221,6 +221,14 @@ impl ResolvedArgs {
             println!("{}", stat.get_url());
             return Ok(true);
         }
+        if !self.json {
+            // print title first, then fetch
+            println!(
+                "Evaluations of jobset {} {}",
+                self.jobset.bold(),
+                format!("@ {}", stat.get_url()).dimmed()
+            );
+        }
         let stat = stat.fetch_and_read()?;
         if self.json {
             let mut hashmap = HashMap::new();
@@ -237,11 +245,6 @@ impl ResolvedArgs {
             println!("{}", serde_json::to_string_pretty(&hashmap)?);
             return Ok(true);
         }
-        println!(
-            "Evaluations of jobset {} {}",
-            self.jobset.bold(),
-            format!("@ {}", stat.get_url()).dimmed()
-        );
         println!("{}", stat.format_table(self.short));
         Ok(true)
     }

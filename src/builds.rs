@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
+use log::warn;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -182,6 +183,21 @@ impl ResolvedArgs {
                 println!("{}", stat.get_url());
                 continue;
             }
+            let url_dimmed = stat.get_url().dimmed();
+            if !self.json {
+                // print title first, then fetch
+                if idx > 0 && !self.short {
+                    println!(""); // vertical whitespace
+                }
+                println!(
+                    "Build Status for {} on jobset {}",
+                    stat.package.bold(),
+                    self.jobset.bold(),
+                );
+                if !self.short {
+                    println!("{url_dimmed}");
+                }
+            }
             let stat = stat.fetch_and_read()?;
             let first_stat = stat.builds.get(0);
             let success = first_stat.is_some_and(|build| build.success);
@@ -201,19 +217,10 @@ impl ResolvedArgs {
                 };
                 continue; // print later
             }
-            if idx > 0 && !self.short {
-                println!("");
-            }
-            println!(
-                "Build Status for {} on jobset {}{}",
-                stat.package.bold(),
-                self.jobset.bold(),
-                match self.short && success {
-                    true => "".into(),
-                    false => format!("\n{}", stat.get_url().dimmed()),
-                }
-            );
             println!("{}", stat.format_table(self.short));
+            if !success && self.short {
+                warn!("latest build failed, check out: {}", url_dimmed)
+            }
         }
         if self.json {
             println!("{}", serde_json::to_string_pretty(&hashmap)?);
