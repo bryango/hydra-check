@@ -1,7 +1,9 @@
+use anyhow::bail;
+use log::info;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{args::Evaluation, builds::BuildStatus, FetchHydra, FormatVecColored, StatusIcon};
+use crate::{args::Evaluation, BuildStatus, FetchHydra, FormatVecColored, SoupFind, StatusIcon};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default)]
@@ -95,5 +97,50 @@ impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
             still_succeed: vec![],
             unfinished: vec![],
         }
+    }
+}
+
+impl<'a> EvalDetails<'a> {
+    fn fetch_and_read(self) -> anyhow::Result<Self> {
+        let doc = self.fetch_document()?;
+        let tbody = match self.find_tbody(&doc, "div#tabs-inputs") {
+            Err(stat) => return Ok(stat),
+            Ok(tbody) => tbody,
+        };
+        let mut inputs: Vec<EvalInput> = Vec::new();
+        for row in tbody.find_all("tr") {
+            let columns = row.find_all("td");
+            let columns: Vec<_> = columns
+                .iter()
+                .map(|x| {
+                    let text: String = x.text().collect();
+                    text.trim().to_string()
+                })
+                .collect();
+            let [name, input_type, value, revision, store_path] = columns.as_slice() else {
+                if Self::is_skipable_row(row)? {
+                    info!(
+                        "{}; for more information, please visit: {}",
+                        "it appears that the result is truncated",
+                        self.get_url()
+                    );
+                    continue;
+                } else {
+                    bail!(
+                        "error while parsing inputs for eval {}: {:?}",
+                        self.eval.id,
+                        row
+                    );
+                }
+            };
+            inputs.push(EvalInput {
+                name: name.into(),
+                input_type: input_type.into(),
+                value: value.into(),
+                revision: revision.into(),
+                store_path: store_path.into(),
+            });
+        }
+        Ok(Self { inputs, ..self })
     }
 }

@@ -128,7 +128,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
 impl<'a> JobsetStatus<'a> {
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
-        let tbody = match self.find_tbody(&doc) {
+        let tbody = match self.find_tbody(&doc, "") {
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };

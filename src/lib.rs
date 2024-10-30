@@ -10,6 +10,7 @@ use std::time::Duration;
 
 pub use args::Cli;
 use args::ResolvedArgs;
+use builds::BuildStatus;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 pub use fetch_stable::NixpkgsChannelVersion;
@@ -71,8 +72,9 @@ trait FetchHydra: Sized + Clone {
 
     /// Checks if the fetched [Html] contains a `tbody` tag (table body).
     /// If not, returns the alert text. If yes, returns the found element.
-    fn find_tbody<'a>(&self, doc: &'a Html) -> Result<ElementRef<'a>, Self> {
-        match doc.find("tbody") {
+    fn find_tbody<'a>(&self, doc: &'a Html, selector: &str) -> Result<ElementRef<'a>, Self> {
+        let selectors = format!("{} tbody", selector);
+        match doc.find(selectors.trim()) {
             Err(_) => {
                 // either the package was not evaluated (due to being e.g. unfree)
                 // or the package does not exist
