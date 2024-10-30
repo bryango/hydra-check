@@ -14,6 +14,8 @@ struct EvalInput {
     store_path: String,
 }
 
+#[skip_serializing_none]
+#[derive(Serialize)]
 struct EvalInputChanges {
     input: String,
     description: String,
@@ -22,7 +24,9 @@ struct EvalInputChanges {
     short_revs: (String, String),
 }
 
+#[derive(Serialize)]
 struct EvalDetails<'a> {
+    #[serde(flatten)]
     eval: &'a Evaluation,
     url: String,
     inputs: Vec<EvalInput>,

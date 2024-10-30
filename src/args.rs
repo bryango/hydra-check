@@ -2,6 +2,7 @@ use clap::{arg, command, Parser};
 use flexi_logger::Logger;
 use log::{debug, error, warn};
 use regex::Regex;
+use serde::Serialize;
 use std::{
     env::consts::{ARCH, OS},
     path::Path,
@@ -9,7 +10,7 @@ use std::{
 
 use crate::{constants, log_format, NixpkgsChannelVersion};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Serialize)]
 pub(crate) struct Evaluation {
     id: u64,
     filter: Option<String>,
