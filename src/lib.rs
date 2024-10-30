@@ -1,6 +1,7 @@
 mod args;
 mod builds;
 pub mod constants;
+mod eval;
 mod fetch_stable;
 mod jobset;
 mod soup;

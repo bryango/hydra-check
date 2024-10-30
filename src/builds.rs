@@ -11,7 +11,7 @@ use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, Tr
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single build attempt, can be serialized to a JSON entry
-struct BuildStatus {
+pub(crate) struct BuildStatus {
     icon: StatusIcon,
     success: bool,
     status: String,

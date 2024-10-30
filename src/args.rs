@@ -72,7 +72,7 @@ pub struct Cli {
     #[arg(long, conflicts_with = "channel")]
     jobset: Option<String>,
 
-    /// Print information about specific evaluations instead of packages
+    /// Print details about specific evaluations instead of packages
     #[arg(short, long)]
     eval: bool,
 
