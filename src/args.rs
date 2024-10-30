@@ -12,6 +12,8 @@ use crate::{constants, log_format, NixpkgsChannelVersion};
 
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct Evaluation {
+    #[serde(skip)]
+    pub(crate) spec: String,
     id: u64,
     filter: Option<String>,
 }
@@ -234,7 +236,11 @@ impl Cli {
             let id = eval_spec.next().unwrap();
             let filter = eval_spec.next().map(String::from);
             match id.parse() {
-                Ok(id) => evals.push(Evaluation { id, filter }),
+                Ok(id) => evals.push(Evaluation {
+                    spec: eval.into(),
+                    id,
+                    filter,
+                }),
                 Err(err) => {
                     error!(
                         "evaluations must be identified by a number {} {} '{}': {}",
