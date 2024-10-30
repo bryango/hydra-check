@@ -1,5 +1,5 @@
 use anyhow::bail;
-use log::info;
+use log::debug;
 use scraper::Html;
 use serde::Deserialize;
 
@@ -19,7 +19,7 @@ pub struct NixpkgsChannelVersion {
 
 impl NixpkgsChannelVersion {
     fn fetch() -> anyhow::Result<Vec<Self>> {
-        info!("fetching the latest channel version from nixos.org/manual");
+        debug!("fetching the latest channel version from nixos.org/manual");
         let document = reqwest::blocking::get("https://nixos.org/manual/nixpkgs/stable/")?
             .error_for_status()?
             .text()?;

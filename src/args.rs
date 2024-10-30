@@ -1,6 +1,6 @@
 use clap::{arg, command, Parser};
 use flexi_logger::Logger;
-use log::{error, info, warn};
+use log::{debug, error, warn};
 use regex::Regex;
 use std::{
     env::consts::{ARCH, OS},
@@ -112,7 +112,7 @@ impl Cli {
             return self;
         }
         let arch = format!("{}-{}", ARCH, OS);
-        info!("assuming --arch '{arch}'");
+        debug!("assuming --arch '{arch}'");
         warn_if_unknown(&arch);
         Self {
             arch: Some(arch),
@@ -167,7 +167,7 @@ impl Cli {
             }
             _ => self.channel.clone(),
         };
-        info!("--channel '{}' implies --jobset '{}'", self.channel, jobset);
+        debug!("--channel '{}' implies --jobset '{}'", self.channel, jobset);
         Self {
             jobset: Some(jobset),
             ..self
@@ -260,14 +260,15 @@ impl Cli {
     pub(crate) fn guess_all_args(self) -> anyhow::Result<ResolvedArgs> {
         let args = self;
         let log_level = match args.verbose {
-            false => log::LevelFilter::Warn,
-            true => log::LevelFilter::Info,
+            false => log::LevelFilter::Info,
+            true => log::LevelFilter::Trace,
         };
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
         let queries = match (args.queries.is_empty(), args.eval) {
-            (true, _) => Queries::Jobset,
+            (true, false) => Queries::Jobset,
+            (true, true) => Queries::Evals(vec![]), // this would resolve to the latest evals
             (false, true) => Queries::Evals(args.guess_evals()),
             (false, false) => Queries::Packages(args.guess_packages()),
         };
