@@ -14,8 +14,8 @@ use crate::{constants, log_format, NixpkgsChannelVersion};
 pub(crate) struct Evaluation {
     #[serde(skip)]
     pub(crate) spec: String,
-    id: u64,
-    filter: Option<String>,
+    pub(crate) id: u64,
+    pub(crate) filter: Option<String>,
 }
 
 #[derive(Debug, Clone)]

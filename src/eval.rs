@@ -73,3 +73,27 @@ impl FetchHydra for EvalDetails<'_> {
         }
     }
 }
+
+impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
+    fn from(eval: &'a Evaluation) -> Self {
+        let url = format!("https://hydra.nixos.org/eval/{}", eval.id);
+        let url = match &eval.filter {
+            Some(x) => format!("{url}?filter={x}"),
+            None => url,
+        };
+        Self {
+            eval,
+            url,
+            inputs: vec![],
+            changes: vec![],
+            aborted: vec![],
+            now_fail: vec![],
+            now_succeed: vec![],
+            new: vec![],
+            removed: vec![],
+            still_fail: vec![],
+            still_succeed: vec![],
+            unfinished: vec![],
+        }
+    }
+}
