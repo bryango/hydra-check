@@ -1,6 +1,6 @@
 use clap::{arg, command, Parser};
 use flexi_logger::Logger;
-use log::{debug, error, warn};
+use log::{debug, error, info, warn};
 use regex::Regex;
 use serde::Serialize;
 use std::{
@@ -234,13 +234,8 @@ impl Cli {
         for eval in self.queries.iter() {
             let mut eval_spec = eval.splitn(2, "/");
             let id = eval_spec.next().unwrap();
-            let filter = eval_spec.next().map(String::from);
-            match id.parse() {
-                Ok(id) => evals.push(Evaluation {
-                    spec: eval.into(),
-                    id,
-                    filter,
-                }),
+            let id = match id.parse() {
+                Ok(id) => id,
                 Err(err) => {
                     error!(
                         "evaluations must be identified by a number {} {} '{}': {}",
@@ -251,7 +246,36 @@ impl Cli {
                     );
                     std::process::exit(1);
                 }
-            }
+            };
+            let filter = match eval_spec.next() {
+                None => {
+                    let default = "coreutils".to_string();
+                    info!(
+                        "{}, so the default filter '/{default}' is used",
+                        "no package filter has been specified"
+                    );
+                    info!(
+                        "specify another filter with --eval '{}', {}: '{}'",
+                        format!("{id}/<filter>"),
+                        "or force an empty filter with a trailing slash",
+                        format!("{id}/")
+                    );
+                    Some(default)
+                }
+                Some(x) if x.trim().is_empty() => None,
+                Some(x) => Some(x.into()),
+            };
+            evals.push(Evaluation {
+                spec: format!(
+                    "{id}{}",
+                    match &filter {
+                        Some(x) => format!("/{x}"),
+                        None => "".into(),
+                    }
+                ),
+                id,
+                filter,
+            })
         }
         evals
     }
@@ -303,7 +327,7 @@ impl ResolvedArgs {
         match &self.queries {
             Queries::Jobset => self.fetch_and_print_jobset(),
             Queries::Packages(packages) => self.fetch_and_print_packages(&packages),
-            Queries::Evals(evals) => todo!(),
+            Queries::Evals(evals) => self.fetch_and_print_evaluation(&evals),
         }
     }
 }
