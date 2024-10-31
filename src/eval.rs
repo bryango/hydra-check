@@ -1,24 +1,46 @@
+use std::fmt::Display;
+
 use anyhow::bail;
+use colored::Colorize;
+use indexmap::IndexMap;
 use log::info;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{args::Evaluation, BuildStatus, FetchHydra, FormatVecColored, SoupFind, StatusIcon};
+use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default)]
 struct EvalInput {
-    name: String,
+    name: Option<String>,
     #[serde(rename = "type")]
-    input_type: String,
-    value: String,
-    revision: String,
-    store_path: String,
+    input_type: Option<String>,
+    value: Option<String>,
+    revision: Option<String>,
+    store_path: Option<String>,
 }
 
-impl FormatVecColored for EvalInput {
-    fn format_as_vec(&self) -> Vec<colored::ColoredString> {
-        todo!()
+impl Display for EvalInput {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        use serde_json::Value;
+
+        let json = serde_json::to_string(&self).expect("EvalInput should be serialized into json");
+        let json: Value = serde_json::from_str(&json).unwrap();
+        let strings: Vec<_> = ["name", "type", "value", "revision", "store_path"]
+            .iter()
+            .filter_map(|key| match &json[key] {
+                Value::Null => None,
+                Value::String(value) => {
+                    let key = match *key {
+                        "name" => "input",
+                        k => k,
+                    };
+                    Some(format!("{}: {}", key.bold(), value))
+                }
+                value => Some(format!("{}: {}", key.bold(), value)),
+            })
+            .collect();
+        write!(f, "{}", strings.join("\n"))
     }
 }
 
@@ -50,7 +72,7 @@ struct EvalDetails<'a> {
 }
 
 impl FetchHydra for EvalDetails<'_> {
-    type Status = EvalInput;
+    type Status = BuildStatus;
 
     fn name(&self) -> &str {
         self.eval.spec.as_str()
@@ -61,14 +83,14 @@ impl FetchHydra for EvalDetails<'_> {
     }
 
     fn entries(&self) -> &Vec<Self::Status> {
-        &self.inputs
+        todo!()
     }
 
     fn finish_with_error(self, status: String) -> Self {
         Self {
             inputs: vec![EvalInput {
-                name: StatusIcon::Warning.to_string(),
-                value: status,
+                name: Some(StatusIcon::Warning.to_string()),
+                value: Some(status),
                 ..Default::default()
             }],
             ..self
@@ -114,7 +136,10 @@ impl<'a> EvalDetails<'a> {
                 .iter()
                 .map(|x| {
                     let text: String = x.text().collect();
-                    text.trim().to_string()
+                    match text.trim() {
+                        x if x.is_empty() => None,
+                        x => Some(x.to_string()),
+                    }
                 })
                 .collect();
             let [name, input_type, value, revision, store_path] = columns.as_slice() else {
@@ -134,13 +159,53 @@ impl<'a> EvalDetails<'a> {
                 }
             };
             inputs.push(EvalInput {
-                name: name.into(),
-                input_type: input_type.into(),
-                value: value.into(),
-                revision: revision.into(),
-                store_path: store_path.into(),
+                name: name.to_owned(),
+                input_type: input_type.to_owned(),
+                value: value.to_owned(),
+                revision: revision.to_owned(),
+                store_path: store_path.to_owned(),
             });
         }
         Ok(Self { inputs, ..self })
+    }
+}
+
+impl ResolvedArgs {
+    pub(crate) fn fetch_and_print_evaluation(
+        &self,
+        evals: &Vec<Evaluation>,
+    ) -> anyhow::Result<bool> {
+        let mut indexmap = IndexMap::new();
+        for (idx, eval) in evals.iter().enumerate() {
+            let stat = EvalDetails::from(eval);
+            if self.url {
+                println!("{}", stat.get_url());
+                continue;
+            }
+            if !self.json {
+                // print title first, then fetch
+                if idx > 0 && !self.short {
+                    println!(""); // vertical whitespace
+                }
+                println!(
+                    "Evaluation {} {}",
+                    stat.eval.id.to_string().bold(),
+                    format!("@ {}", stat.get_url()).dimmed(),
+                );
+            }
+            let stat = stat.fetch_and_read()?;
+            if self.json {
+                indexmap.insert(&stat.eval.spec, stat);
+                continue;
+            }
+            for entry in stat.inputs {
+                println!(""); // vertical separation
+                println!("{entry}");
+            }
+        }
+        if self.json {
+            println!("{}", serde_json::to_string_pretty(&indexmap)?);
+        }
+        Ok(true)
     }
 }

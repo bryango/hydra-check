@@ -251,11 +251,11 @@ impl Cli {
                 None => {
                     let default = "coreutils".to_string();
                     info!(
-                        "{}, so the default filter '/{default}' is used",
-                        "no package filter has been specified"
+                        "{}, so the default filter '/{default}' is used {}",
+                        "no package filter has been specified", "for better performance"
                     );
                     info!(
-                        "specify another filter with --eval '{}', {}: '{}'",
+                        "specify another filter with --eval '{}', {}: '{}'\n",
                         format!("{id}/<filter>"),
                         "or force an empty filter with a trailing slash",
                         format!("{id}/")
