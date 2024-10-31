@@ -14,6 +14,7 @@ use builds::BuildStatus;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 pub use fetch_stable::NixpkgsChannelVersion;
+use jobset::JobsetStatus;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};

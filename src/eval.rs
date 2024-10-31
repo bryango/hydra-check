@@ -1,13 +1,15 @@
 use std::fmt::Display;
 
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use colored::Colorize;
 use indexmap::IndexMap;
 use log::info;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
+use crate::{
+    args::Evaluation, BuildStatus, FetchHydra, JobsetStatus, ResolvedArgs, SoupFind, StatusIcon,
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default)]
@@ -30,6 +32,7 @@ impl Display for EvalInput {
             .iter()
             .filter_map(|key| match &json[key] {
                 Value::Null => None,
+                // unquote the string:
                 Value::String(value) => {
                     let key = match *key {
                         "name" => "input",
@@ -171,11 +174,37 @@ impl<'a> EvalDetails<'a> {
 }
 
 impl ResolvedArgs {
-    pub(crate) fn fetch_and_print_evaluation(
+    pub(crate) fn fetch_and_print_evaluations(
         &self,
         evals: &Vec<Evaluation>,
     ) -> anyhow::Result<bool> {
         let mut indexmap = IndexMap::new();
+        let evals = match &evals.is_empty() {
+            false => evals.clone(),
+            true => {
+                info!(
+                    "querying the latest evaluation of --jobset '{}'",
+                    self.jobset
+                ); // TODO: print a short summary of the result
+                let jobset = JobsetStatus::from(self);
+                info!("{}", jobset.get_url().dimmed());
+                let jobset = jobset.fetch_and_read()?;
+                let err = || {
+                    anyhow!(
+                        "could not fetch the latest evaluation for --jobset '{}'",
+                        self.jobset
+                    )
+                };
+                let id = jobset
+                    .evals
+                    .first()
+                    .ok_or_else(err)?
+                    .id
+                    .ok_or_else(err)?
+                    .to_string();
+                vec![Evaluation::guess_from_spec(&id)]
+            }
+        };
         for (idx, eval) in evals.iter().enumerate() {
             let stat = EvalDetails::from(eval);
             if self.url {
@@ -188,8 +217,12 @@ impl ResolvedArgs {
                     println!(""); // vertical whitespace
                 }
                 println!(
-                    "Evaluation {} {}",
+                    "Evaluation {}{} {}",
                     stat.eval.id.to_string().bold(),
+                    match &stat.eval.filter {
+                        Some(x) => format!(" filtered by '{}'", x.bold()),
+                        None => "".into(),
+                    },
                     format!("@ {}", stat.get_url()).dimmed(),
                 );
             }

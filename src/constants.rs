@@ -20,3 +20,6 @@ pub const KNOWN_ARCHITECTURES: [&str; 4] = [
     "x86_64-darwin",
     "aarch64-darwin",
 ];
+
+/// Default package filter for the details of a specific evaluation.
+pub const DEFAULT_EVALUATION_FILTER: &str = "coreutils";

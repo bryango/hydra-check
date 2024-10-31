@@ -18,6 +18,55 @@ pub(crate) struct Evaluation {
     pub(crate) filter: Option<String>,
 }
 
+impl Evaluation {
+    pub(crate) fn guess_from_spec(spec: &str) -> Self {
+        let mut spec = spec.splitn(2, "/");
+        let id = spec.next().unwrap();
+        let id = match id.parse() {
+            Ok(id) => id,
+            Err(err) => {
+                error!(
+                    "evaluations must be identified by a number {} {} '{}': {}",
+                    "(slash an optional filter), e.g. '1809585/coreutils'.",
+                    "Instead we get",
+                    id,
+                    err
+                );
+                std::process::exit(1);
+            }
+        };
+        let filter = match spec.next() {
+            None => {
+                let default = constants::DEFAULT_EVALUATION_FILTER.to_string();
+                info!(
+                    "{}, so the default filter '/{default}' is used {}",
+                    "no package filter has been specified", "for better performance"
+                );
+                info!(
+                    "specify another filter with --eval '{}', {}: '{}'\n",
+                    format!("{id}/<filter>"),
+                    "or force an empty filter with a trailing slash",
+                    format!("{id}/")
+                );
+                Some(default)
+            }
+            Some(x) if x.trim().is_empty() => None,
+            Some(x) => Some(x.into()),
+        };
+        Self {
+            spec: format!(
+                "{id}{}",
+                match &filter {
+                    Some(x) => format!("/{x}"),
+                    None => "".into(),
+                }
+            ),
+            id,
+            filter,
+        }
+    }
+}
+
 #[derive(Debug, Clone)]
 pub(crate) enum Queries {
     Jobset,
@@ -231,51 +280,8 @@ impl Cli {
 
     fn guess_evals(&self) -> Vec<Evaluation> {
         let mut evals = Vec::new();
-        for eval in self.queries.iter() {
-            let mut eval_spec = eval.splitn(2, "/");
-            let id = eval_spec.next().unwrap();
-            let id = match id.parse() {
-                Ok(id) => id,
-                Err(err) => {
-                    error!(
-                        "evaluations must be identified by a number {} {} '{}': {}",
-                        "(slash an optional filter), e.g. '1809585/coreutils'.",
-                        "Instead we get",
-                        id,
-                        err
-                    );
-                    std::process::exit(1);
-                }
-            };
-            let filter = match eval_spec.next() {
-                None => {
-                    let default = "coreutils".to_string();
-                    info!(
-                        "{}, so the default filter '/{default}' is used {}",
-                        "no package filter has been specified", "for better performance"
-                    );
-                    info!(
-                        "specify another filter with --eval '{}', {}: '{}'\n",
-                        format!("{id}/<filter>"),
-                        "or force an empty filter with a trailing slash",
-                        format!("{id}/")
-                    );
-                    Some(default)
-                }
-                Some(x) if x.trim().is_empty() => None,
-                Some(x) => Some(x.into()),
-            };
-            evals.push(Evaluation {
-                spec: format!(
-                    "{id}{}",
-                    match &filter {
-                        Some(x) => format!("/{x}"),
-                        None => "".into(),
-                    }
-                ),
-                id,
-                filter,
-            })
+        for spec in self.queries.iter() {
+            evals.push(Evaluation::guess_from_spec(spec))
         }
         evals
     }
@@ -327,7 +333,7 @@ impl ResolvedArgs {
         match &self.queries {
             Queries::Jobset => self.fetch_and_print_jobset(),
             Queries::Packages(packages) => self.fetch_and_print_packages(&packages),
-            Queries::Evals(evals) => self.fetch_and_print_evaluation(&evals),
+            Queries::Evals(evals) => self.fetch_and_print_evaluations(&evals),
         }
     }
 }

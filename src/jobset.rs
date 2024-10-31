@@ -9,10 +9,10 @@ use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, Tr
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single evaluation, can be serialized to a JSON entry
-struct EvalStatus {
+pub(crate) struct EvalStatus {
     icon: StatusIcon,
     finished: Option<bool>,
-    id: Option<u64>,
+    pub(crate) id: Option<u64>,
     url: Option<String>,
     datetime: Option<String>,
     relative: Option<String>,
@@ -75,11 +75,11 @@ impl FormatVecColored for EvalStatus {
 
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
-struct JobsetStatus<'a> {
+pub(crate) struct JobsetStatus<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
-    evals: Vec<EvalStatus>,
+    pub(crate) evals: Vec<EvalStatus>,
 }
 
 impl FetchHydra for JobsetStatus<'_> {
@@ -125,7 +125,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
 }
 
 impl<'a> JobsetStatus<'a> {
-    fn fetch_and_read(self) -> anyhow::Result<Self> {
+    pub(crate) fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "") {
             Err(stat) => return Ok(stat),
