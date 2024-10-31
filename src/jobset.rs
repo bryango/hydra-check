@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
+use indexmap::IndexMap;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -231,18 +230,18 @@ impl ResolvedArgs {
         }
         let stat = stat.fetch_and_read()?;
         if self.json {
-            let mut hashmap = HashMap::new();
+            let mut indexmap = IndexMap::new();
             match self.short {
-                true => hashmap.insert(
+                true => indexmap.insert(
                     &stat.jobset,
                     match stat.evals.get(0) {
                         Some(x) => vec![x.to_owned()],
                         None => vec![],
                     },
                 ),
-                false => hashmap.insert(&stat.jobset, stat.evals),
+                false => indexmap.insert(&stat.jobset, stat.evals),
             };
-            println!("{}", serde_json::to_string_pretty(&hashmap)?);
+            println!("{}", serde_json::to_string_pretty(&indexmap)?);
             return Ok(true);
         }
         println!("{}", stat.format_table(self.short));

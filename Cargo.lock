@@ -787,6 +787,7 @@ dependencies = [
  "colored",
  "comfy-table",
  "flexi_logger",
+ "indexmap 2.6.0",
  "log",
  "regex",
  "reqwest",

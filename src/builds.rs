@@ -1,7 +1,6 @@
-use std::collections::HashMap;
-
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
+use indexmap::IndexMap;
 use log::warn;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
@@ -176,7 +175,7 @@ impl<'a> PackageStatus<'a> {
 impl ResolvedArgs {
     pub(crate) fn fetch_and_print_packages(&self, packages: &Vec<String>) -> anyhow::Result<bool> {
         let mut status = true;
-        let mut hashmap = HashMap::new();
+        let mut indexmap = IndexMap::new();
         for (idx, package) in packages.iter().enumerate() {
             let stat = PackageStatus::from_package_with_args(package, self);
             if self.url {
@@ -206,14 +205,14 @@ impl ResolvedArgs {
             }
             if self.json {
                 match self.short {
-                    true => hashmap.insert(
+                    true => indexmap.insert(
                         stat.package,
                         match first_stat {
                             Some(x) => vec![x.to_owned()],
                             None => vec![],
                         },
                     ),
-                    false => hashmap.insert(stat.package, stat.builds),
+                    false => indexmap.insert(stat.package, stat.builds),
                 };
                 continue; // print later
             }
@@ -223,7 +222,7 @@ impl ResolvedArgs {
             }
         }
         if self.json {
-            println!("{}", serde_json::to_string_pretty(&hashmap)?);
+            println!("{}", serde_json::to_string_pretty(&indexmap)?);
         }
         Ok(status)
     }

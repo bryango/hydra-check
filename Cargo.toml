@@ -9,6 +9,7 @@ clap = { version = "4.5.20", features = ["derive"] }
 colored = "2.1.0"
 comfy-table = { version = "7.1.1", features = ["custom_styling"] }
 flexi_logger = "0.29.3"
+indexmap = { version = "2.6.0", features = ["serde"] }
 log = "0.4.22"
 regex = "1.11.0"
 reqwest = { version = "0.12.8", features = ["blocking", "cookies", "gzip"] }
