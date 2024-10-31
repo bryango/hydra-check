@@ -198,7 +198,7 @@ impl ResolvedArgs {
                 }
             }
             let stat = stat.fetch_and_read()?;
-            let first_stat = stat.builds.get(0);
+            let first_stat = stat.builds.first();
             let success = first_stat.is_some_and(|build| build.success);
             if !success {
                 status = false;

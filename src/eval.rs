@@ -7,9 +7,7 @@ use log::info;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{
-    args::Evaluation, BuildStatus, FetchHydra, JobsetStatus, ResolvedArgs, SoupFind, StatusIcon,
-};
+use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default)]
@@ -185,23 +183,19 @@ impl ResolvedArgs {
                 info!(
                     "querying the latest evaluation of --jobset '{}'",
                     self.jobset
-                ); // TODO: print a short summary of the result
-                let jobset = JobsetStatus::from(self);
-                info!("{}", jobset.get_url().dimmed());
-                let jobset = jobset.fetch_and_read()?;
+                );
                 let err = || {
                     anyhow!(
-                        "could not fetch the latest evaluation for --jobset '{}'",
+                        "could not find the latest evaluation for --jobset '{}'",
                         self.jobset
                     )
                 };
-                let id = jobset
-                    .evals
-                    .first()
-                    .ok_or_else(err)?
-                    .id
+                eprintln!("");
+                let id = self
+                    .fetch_and_print_jobset(true)?
                     .ok_or_else(err)?
                     .to_string();
+                eprintln!("");
                 vec![Evaluation::guess_from_spec(&id)]
             }
         };

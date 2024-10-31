@@ -22,4 +22,4 @@ pub const KNOWN_ARCHITECTURES: [&str; 4] = [
 ];
 
 /// Default package filter for the details of a specific evaluation.
-pub const DEFAULT_EVALUATION_FILTER: &str = "coreutils";
+pub const DEFAULT_EVALUATION_FILTER: &str = "nixVersions.stable";

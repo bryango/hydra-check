@@ -331,7 +331,10 @@ impl ResolvedArgs {
     /// and prints the result according to the command line specs.
     pub(crate) fn fetch_and_print(&self) -> anyhow::Result<bool> {
         match &self.queries {
-            Queries::Jobset => self.fetch_and_print_jobset(),
+            Queries::Jobset => {
+                self.fetch_and_print_jobset(self.short)?;
+                Ok(true)
+            }
             Queries::Packages(packages) => self.fetch_and_print_packages(&packages),
             Queries::Evals(evals) => self.fetch_and_print_evaluations(&evals),
         }

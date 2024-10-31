@@ -214,13 +214,17 @@ impl<'a> JobsetStatus<'a> {
 }
 
 impl ResolvedArgs {
-    pub(crate) fn fetch_and_print_jobset(&self) -> anyhow::Result<bool> {
+    pub(crate) fn fetch_and_print_jobset(&self, summary: bool) -> anyhow::Result<Option<u64>> {
         let stat = JobsetStatus::from(self);
+        let (short, json) = match summary {
+            true => (true, false),
+            false => (self.short, self.json),
+        };
         if self.url {
             println!("{}", stat.get_url());
-            return Ok(true);
+            return Ok(None);
         }
-        if !self.json {
+        if !json {
             // print title first, then fetch
             println!(
                 "Evaluations of jobset {} {}",
@@ -229,12 +233,14 @@ impl ResolvedArgs {
             );
         }
         let stat = stat.fetch_and_read()?;
-        if self.json {
+        let first_stat = stat.evals.first();
+        let latest_id = first_stat.and_then(|x| x.id);
+        if json {
             let mut indexmap = IndexMap::new();
-            match self.short {
+            match short {
                 true => indexmap.insert(
                     &stat.jobset,
-                    match stat.evals.get(0) {
+                    match first_stat {
                         Some(x) => vec![x.to_owned()],
                         None => vec![],
                     },
@@ -242,9 +248,9 @@ impl ResolvedArgs {
                 false => indexmap.insert(&stat.jobset, stat.evals),
             };
             println!("{}", serde_json::to_string_pretty(&indexmap)?);
-            return Ok(true);
+            return Ok(latest_id);
         }
-        println!("{}", stat.format_table(self.short));
-        Ok(true)
+        println!("{}", stat.format_table(short));
+        Ok(latest_id)
     }
 }
