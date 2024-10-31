@@ -5,6 +5,7 @@ use colored::Colorize;
 use indexmap::IndexMap;
 use log::info;
 use serde::Serialize;
+use serde_json::Value;
 use serde_with::skip_serializing_none;
 
 use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
@@ -22,8 +23,6 @@ struct EvalInput {
 
 impl Display for EvalInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        use serde_json::Value;
-
         let json = serde_json::to_string(&self).expect("EvalInput should be serialized into json");
         let json: Value = serde_json::from_str(&json).unwrap();
         let strings: Vec<_> = ["name", "type", "value", "revision", "store_path"]
@@ -53,6 +52,30 @@ struct EvalInputChanges {
     url: String,
     revs: (String, String),
     short_revs: (String, String),
+}
+
+impl Display for EvalInputChanges {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let json = serde_json::to_string(&self).expect("EvalInput should be serialized into json");
+        let json: Value = serde_json::from_str(&json).unwrap();
+        let strings: Vec<_> = ["input", "description", "url", "revs", "short_revs"]
+            .iter()
+            .filter_map(|key| match &json[key] {
+                Value::Null => None,
+                // unquote the string:
+                Value::String(value) => {
+                    let key = match *key {
+                        "input" => "changed_input",
+                        "description" => "changes",
+                        k => k,
+                    };
+                    Some(format!("{}: {}", key.bold(), value))
+                }
+                value => Some(format!("{}: {}", key.bold(), value)),
+            })
+            .collect();
+        write!(f, "{}", strings.join("\n"))
+    }
 }
 
 #[derive(Serialize, Clone)]
@@ -127,6 +150,7 @@ impl<'a> EvalDetails<'a> {
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "div#tabs-inputs") {
+            // inputs are critical information, early exit if it doesn't exist
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
