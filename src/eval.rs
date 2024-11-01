@@ -151,7 +151,7 @@ impl<'a> EvalDetails<'a> {
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "div#tabs-inputs") {
-            // inputs are critical information, early exit if it doesn't exist
+            // inputs are essential information, so exit early if this fails:
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
@@ -169,7 +169,7 @@ impl<'a> EvalDetails<'a> {
                 })
                 .collect();
             let [name, input_type, value, revision, store_path] = columns.as_slice() else {
-                if Self::is_skipable_row(row)? {
+                if let Ok(true) = Self::is_skipable_row(row) {
                     info!(
                         "{}; for more information, please visit: {}",
                         "it appears that the result is truncated",
@@ -180,7 +180,7 @@ impl<'a> EvalDetails<'a> {
                     bail!(
                         "error while parsing inputs for eval {}: {:?}",
                         self.eval.id,
-                        row
+                        row.html()
                     );
                 }
             };
@@ -236,25 +236,15 @@ impl<'a> EvalDetails<'a> {
                     .map(|x| x.to_string());
 
                 let revs = if let Some(url) = &url {
-                    // note that the returned url is not deterministic,
+                    // note that the returned url is not deterministic:
                     // the position of the query parameters may float around
-                    let rev1 = match Regex::new("^.*rev1=([0-9a-z]+).*$")
-                        .unwrap()
-                        .captures(url)
-                        .map(|x| x.extract())
-                    {
-                        Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
-                        _ => None,
-                    };
-
-                    let rev2 = match Regex::new("^.*rev2=([0-9a-z]+).*$")
-                        .unwrap()
-                        .captures(url)
-                        .map(|x| x.extract())
-                    {
-                        Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
-                        _ => None,
-                    };
+                    let [rev1, rev2] = ["rev1", "rev2"].map(|rev_spec| {
+                        let re = format!("^.*{rev_spec}=([0-9a-z]+).*$");
+                        match Regex::new(&re).unwrap().captures(url).map(|x| x.extract()) {
+                            Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
+                            _ => None,
+                        }
+                    });
 
                     match (rev1, rev2) {
                         (Some(rev1), Some(rev2)) => Some((rev1, rev2)),
