@@ -101,14 +101,8 @@ struct EvalDetails<'a> {
 }
 
 impl FetchHydra for EvalDetails<'_> {
-    type Status = BuildStatus;
-
     fn get_url(&self) -> &str {
         &self.url
-    }
-
-    fn entries(&self) -> &Vec<Self::Status> {
-        todo!()
     }
 
     fn finish_with_error(self, status: String) -> Self {

@@ -83,14 +83,8 @@ pub(crate) struct JobsetStatus<'a> {
 }
 
 impl FetchHydra for JobsetStatus<'_> {
-    type Status = EvalStatus;
-
     fn get_url(&self) -> &str {
         &self.url
-    }
-
-    fn entries(&self) -> &Vec<Self::Status> {
-        &self.evals
     }
 
     fn finish_with_error(self, status: String) -> Self {
@@ -246,7 +240,7 @@ impl ResolvedArgs {
             println!("{}", serde_json::to_string_pretty(&indexmap)?);
             return Ok(latest_id);
         }
-        println!("{}", stat.format_table(short));
+        println!("{}", stat.format_table(short, &stat.evals));
         Ok(latest_id)
     }
 }

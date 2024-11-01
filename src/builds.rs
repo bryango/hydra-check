@@ -62,19 +62,13 @@ struct PackageStatus<'a> {
 }
 
 impl FetchHydra for PackageStatus<'_> {
-    type Status = BuildStatus;
-
     fn get_url(&self) -> &str {
         &self.url
     }
 
-    fn entries(&self) -> &Vec<Self::Status> {
-        &self.builds
-    }
-
     fn finish_with_error(self, status: String) -> Self {
         Self {
-            builds: vec![Self::Status {
+            builds: vec![BuildStatus {
                 icon: StatusIcon::Warning,
                 status,
                 ..Default::default()
@@ -212,7 +206,7 @@ impl ResolvedArgs {
                 };
                 continue; // print later
             }
-            println!("{}", stat.format_table(self.short));
+            println!("{}", stat.format_table(self.short, &stat.builds));
             if !success && self.short {
                 warn!("latest build failed, check out: {}", url_dimmed)
             }

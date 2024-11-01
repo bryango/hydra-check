@@ -52,10 +52,7 @@ trait FormatVecColored {
 }
 
 trait FetchHydra: Sized + Clone {
-    type Status: FormatVecColored;
-
     fn get_url(&self) -> &str;
-    fn entries(&self) -> &Vec<Self::Status>;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
             .timeout(Duration::from_secs(20))
@@ -100,10 +97,10 @@ trait FetchHydra: Sized + Clone {
         Ok(skipable)
     }
 
-    fn format_table(&self, short: bool) -> String {
+    fn format_table<T: FormatVecColored>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
-        for entry in self.entries() {
+        for entry in entries {
             table.add_row(entry.format_as_vec());
             if short {
                 break;
