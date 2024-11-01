@@ -64,10 +64,6 @@ struct PackageStatus<'a> {
 impl FetchHydra for PackageStatus<'_> {
     type Status = BuildStatus;
 
-    fn name(&self) -> &str {
-        &self.package
-    }
-
     fn get_url(&self) -> &str {
         &self.url
     }

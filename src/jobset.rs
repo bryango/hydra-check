@@ -85,10 +85,6 @@ pub(crate) struct JobsetStatus<'a> {
 impl FetchHydra for JobsetStatus<'_> {
     type Status = EvalStatus;
 
-    fn name(&self) -> &str {
-        &self.jobset
-    }
-
     fn get_url(&self) -> &str {
         &self.url
     }

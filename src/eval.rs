@@ -3,7 +3,8 @@ use std::fmt::Display;
 use anyhow::{anyhow, bail};
 use colored::Colorize;
 use indexmap::IndexMap;
-use log::info;
+use log::{info, warn};
+use regex::Regex;
 use serde::Serialize;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
@@ -49,9 +50,9 @@ impl Display for EvalInput {
 struct EvalInputChanges {
     input: String,
     description: String,
-    url: String,
-    revs: (String, String),
-    short_revs: (String, String),
+    url: Option<String>,
+    revs: Option<(String, String)>,
+    short_revs: Option<(String, String)>,
 }
 
 impl Display for EvalInputChanges {
@@ -70,6 +71,10 @@ impl Display for EvalInputChanges {
                         k => k,
                     };
                     Some(format!("{}: {}", key.bold(), value))
+                }
+                Value::Array(vec) => {
+                    let texts: Vec<_> = vec.iter().filter_map(|x| x.as_str()).collect();
+                    Some(format!("{}: {}", key.bold(), texts.join(" -> ")))
                 }
                 value => Some(format!("{}: {}", key.bold(), value)),
             })
@@ -97,10 +102,6 @@ struct EvalDetails<'a> {
 
 impl FetchHydra for EvalDetails<'_> {
     type Status = BuildStatus;
-
-    fn name(&self) -> &str {
-        self.eval.spec.as_str()
-    }
 
     fn get_url(&self) -> &str {
         &self.url
@@ -191,7 +192,111 @@ impl<'a> EvalDetails<'a> {
                 store_path: store_path.to_owned(),
             });
         }
-        Ok(Self { inputs, ..self })
+        let input_changes = || -> anyhow::Result<Vec<EvalInputChanges>> {
+            let tables = doc.find_all("div#tabs-inputs table");
+            let err = || {
+                anyhow!(
+                    "could not parse the table of changed inputs in {:?}",
+                    tables.iter().map(|x| x.html()).collect::<Vec<_>>()
+                )
+            };
+            // table of input changes:
+            let table = tables.get(1).ok_or_else(err)?;
+            let thead: Vec<String> = table
+                .find("tr")?
+                .find_all("th")
+                .iter()
+                .map(|x| x.text().collect())
+                .collect();
+            if !thead
+                .iter()
+                .all(|x| x.trim().contains("Input") || x.trim().contains("Changes"))
+            {
+                bail!(err());
+            }
+            let tbody = table.find_all("tr");
+            let rows = tbody.get(1..).ok_or_else(err)?;
+            let mut input_changes = Vec::new();
+            for row in rows {
+                let columns = row.find_all("td");
+                let mut columns = columns.iter();
+                let input: String = columns.next().ok_or_else(err)?.text().collect();
+                let input = input.trim().to_string();
+
+                let changes = columns.next().ok_or_else(err)?;
+                let description: String = changes.text().collect();
+                let description = description.trim().to_string();
+
+                // the following entries are non-essential,
+                // so we avoid using `?` for premature exits
+                let url = changes
+                    .find("a")
+                    .ok()
+                    .and_then(|x| x.attr("href"))
+                    .map(|x| x.to_string());
+
+                let revs = if let Some(url) = &url {
+                    // note that the returned url is not deterministic,
+                    // the position of the query parameters may float around
+                    let (_, [rev1]): (_, [_; 1]) = Regex::new("^.*rev1=([0-9a-z]+).*$")
+                        .unwrap()
+                        .captures(url)
+                        .ok_or_else(err)?
+                        .extract();
+
+                    let (_, [rev2]): (_, [_; 1]) = Regex::new("^.*rev2=([0-9a-z]+).*$")
+                        .unwrap()
+                        .captures(url)
+                        .ok_or_else(err)?
+                        .extract();
+
+                    if rev1.is_empty() || rev2.is_empty() {
+                        None
+                    } else {
+                        Some((rev1.to_owned(), rev2.to_owned()))
+                    }
+                } else {
+                    None
+                };
+
+                let short_revs = if !description.is_empty() {
+                    let (matched_desc, short_revs): (_, [_; 2]) =
+                        Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$")
+                            .unwrap()
+                            .captures(&description)
+                            .ok_or_else(err)?
+                            .extract();
+
+                    if matched_desc == description && short_revs.iter().all(|x| !x.is_empty()) {
+                        Some((short_revs[0].to_owned(), short_revs[1].to_owned()))
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                };
+
+                input_changes.push(EvalInputChanges {
+                    input,
+                    description,
+                    url,
+                    revs,
+                    short_revs,
+                });
+            }
+            Ok(input_changes)
+        };
+
+        let changes = input_changes().unwrap_or_else(|err| {
+            warn!("{}\n{}", err, err.backtrace());
+            vec![]
+        });
+
+        Ok(Self {
+            inputs,
+            changes,
+            ..self
+        })
     }
 }
 
@@ -250,6 +355,10 @@ impl ResolvedArgs {
                 continue;
             }
             for entry in stat.inputs {
+                println!(""); // vertical separation
+                println!("{entry}");
+            }
+            for entry in stat.changes {
                 println!(""); // vertical separation
                 println!("{entry}");
             }

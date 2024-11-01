@@ -54,7 +54,6 @@ trait FormatVecColored {
 trait FetchHydra: Sized + Clone {
     type Status: FormatVecColored;
 
-    fn name(&self) -> &str;
     fn get_url(&self) -> &str;
     fn entries(&self) -> &Vec<Self::Status>;
     fn fetch_document(&self) -> anyhow::Result<Html> {
