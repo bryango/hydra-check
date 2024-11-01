@@ -59,7 +59,7 @@ impl Display for EvalInputChanges {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let json = serde_json::to_string(&self).expect("EvalInput should be serialized into json");
         let json: Value = serde_json::from_str(&json).unwrap();
-        let strings: Vec<_> = ["input", "description", "url", "revs", "short_revs"]
+        let strings: Vec<_> = ["input", "description", "url", "revs"]
             .iter()
             .filter_map(|key| match &json[key] {
                 Value::Null => None,
@@ -238,39 +238,42 @@ impl<'a> EvalDetails<'a> {
                 let revs = if let Some(url) = &url {
                     // note that the returned url is not deterministic,
                     // the position of the query parameters may float around
-                    let (_, [rev1]): (_, [_; 1]) = Regex::new("^.*rev1=([0-9a-z]+).*$")
+                    let rev1 = match Regex::new("^.*rev1=([0-9a-z]+).*$")
                         .unwrap()
                         .captures(url)
-                        .ok_or_else(err)?
-                        .extract();
+                        .map(|x| x.extract())
+                    {
+                        Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
+                        _ => None,
+                    };
 
-                    let (_, [rev2]): (_, [_; 1]) = Regex::new("^.*rev2=([0-9a-z]+).*$")
+                    let rev2 = match Regex::new("^.*rev2=([0-9a-z]+).*$")
                         .unwrap()
                         .captures(url)
-                        .ok_or_else(err)?
-                        .extract();
+                        .map(|x| x.extract())
+                    {
+                        Some((_, [rev])) if !rev.is_empty() => Some(rev.to_string()),
+                        _ => None,
+                    };
 
-                    if rev1.is_empty() || rev2.is_empty() {
-                        None
-                    } else {
-                        Some((rev1.to_owned(), rev2.to_owned()))
+                    match (rev1, rev2) {
+                        (Some(rev1), Some(rev2)) => Some((rev1, rev2)),
+                        _ => None,
                     }
                 } else {
                     None
                 };
 
                 let short_revs = if !description.is_empty() {
-                    let (matched_desc, short_revs): (_, [_; 2]) =
-                        Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$")
-                            .unwrap()
-                            .captures(&description)
-                            .ok_or_else(err)?
-                            .extract();
-
-                    if matched_desc == description && short_revs.iter().all(|x| !x.is_empty()) {
-                        Some((short_revs[0].to_owned(), short_revs[1].to_owned()))
-                    } else {
-                        None
+                    match Regex::new("^([0-9a-z]+) to ([0-9a-z]+)$")
+                        .unwrap()
+                        .captures(&description)
+                        .map(|x| x.extract())
+                    {
+                        Some((_, [rev1, rev2])) if (!rev1.is_empty()) && (!rev2.is_empty()) => {
+                            Some((rev1.to_string(), rev2.to_string()))
+                        }
+                        _ => None,
                     }
                 } else {
                     None
