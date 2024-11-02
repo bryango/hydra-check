@@ -38,7 +38,7 @@ impl<'a, T: Selectable<'a> + Debug + AsHtml> SoupFind<'a> for T {
     }
 }
 
-impl AsHtml for Html {
+impl AsHtml for &Html {
     fn as_html(&self) -> String {
         self.html()
     }
