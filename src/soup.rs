@@ -1,7 +1,7 @@
 use std::fmt::Debug;
 
 use anyhow::anyhow;
-use scraper::{selectable::Selectable, ElementRef, Selector};
+use scraper::{selectable::Selectable, ElementRef, Html, Selector};
 
 /// A simple wrapper trait that provides the `find` and `find_all` methods
 /// to [`scraper`]'s [`Selectable`] elements, inspired by the interface of
@@ -16,7 +16,11 @@ pub trait SoupFind<'a> {
     fn find(self, selectors: &str) -> anyhow::Result<ElementRef<'a>>;
 }
 
-impl<'a, T: Selectable<'a> + Debug> SoupFind<'a> for T {
+trait AsHtml {
+    fn as_html(&self) -> String;
+}
+
+impl<'a, T: Selectable<'a> + Debug + AsHtml> SoupFind<'a> for T {
     fn find_all(self, selectors: &str) -> Vec<ElementRef<'a>> {
         let selector = Selector::parse(selectors).expect("the selector should be valid");
         self.select(&selector).collect()
@@ -24,9 +28,25 @@ impl<'a, T: Selectable<'a> + Debug> SoupFind<'a> for T {
 
     fn find(self, selectors: &str) -> anyhow::Result<ElementRef<'a>> {
         let selector = Selector::parse(selectors).expect("the selector should be valid");
-        let err = anyhow!("could not select '{:?}' in '{:?}'", selector, self);
+        let err = anyhow!(
+            "could not select '{:?}' in '{:?}'",
+            selector,
+            self.as_html()
+        );
         let element = self.select(&selector).next().ok_or(err)?;
         Ok(element)
+    }
+}
+
+impl AsHtml for Html {
+    fn as_html(&self) -> String {
+        self.html()
+    }
+}
+
+impl AsHtml for ElementRef<'_> {
+    fn as_html(&self) -> String {
+        self.html()
     }
 }
 
