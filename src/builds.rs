@@ -11,15 +11,16 @@ use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, Tr
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single build attempt, can be serialized to a JSON entry
 pub(crate) struct BuildStatus {
-    icon: StatusIcon,
-    success: bool,
-    status: String,
-    timestamp: Option<String>,
-    build_id: Option<String>,
-    build_url: Option<String>,
-    name: Option<String>,
-    arch: Option<String>,
-    evals: bool,
+    pub(crate) icon: StatusIcon,
+    pub(crate) success: bool,
+    pub(crate) status: String,
+    pub(crate) timestamp: Option<String>,
+    pub(crate) build_id: Option<String>,
+    pub(crate) build_url: Option<String>,
+    pub(crate) name: Option<String>,
+    pub(crate) arch: Option<String>,
+    pub(crate) evals: bool,
+    pub(crate) job_name: Option<String>,
 }
 
 impl FormatVecColored for BuildStatus {
@@ -32,6 +33,10 @@ impl FormatVecColored for BuildStatus {
             (true, true) => format!("{icon}"),
         };
         row.push(status.into());
+        match &self.job_name {
+            Some(job_name) => row.push(job_name.as_str().into()),
+            None => {}
+        };
         let details = if self.evals {
             let name = self.name.clone().unwrap_or_default().into();
             let timestamp = self
@@ -112,9 +117,9 @@ impl<'a> PackageStatus<'a> {
                     continue;
                 } else {
                     bail!(
-                        "error while parsing Hydra status for package '{}': {:?}",
+                        "error while parsing Hydra status for package '{}': {}",
                         self.package,
-                        row
+                        row.html()
                     );
                 }
             };
@@ -156,6 +161,7 @@ impl<'a> PackageStatus<'a> {
                 name: Some(name),
                 arch: Some(arch),
                 evals,
+                job_name: None,
             });
         }
         Ok(Self { builds, ..self })

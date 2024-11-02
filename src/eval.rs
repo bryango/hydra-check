@@ -10,10 +10,12 @@ use serde::Serialize;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
 
-use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
+use crate::{
+    args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr,
+};
 
 #[skip_serializing_none]
-#[derive(Serialize, Clone, Default)]
+#[derive(Serialize, Clone, Default, Debug)]
 struct EvalInput {
     name: Option<String>,
     #[serde(rename = "type")]
@@ -231,6 +233,73 @@ impl<'a> EvalDetails<'a> {
         Ok(input_changes)
     }
 
+    fn parse_build_stats(&self, doc: &Html, selector: &str) -> anyhow::Result<Vec<BuildStatus>> {
+        let err = || {
+            anyhow!(
+                "could not parse the table of build stats '{:?}' in {}",
+                selector,
+                doc.html()
+            )
+        };
+        let tbody = match self.find_tbody(&doc, selector) {
+            Err(stat) => bail!("{:?}", stat.inputs.first().ok_or_else(err)?.value),
+            Ok(tbody) => tbody,
+        };
+        let mut builds: Vec<BuildStatus> = Vec::new();
+        for row in tbody.find_all("tr") {
+            let columns = row.find_all("td");
+            let [status, build, job_name, timestamp, name, arch] = columns.as_slice() else {
+                if Self::is_skipable_row(row)? {
+                    continue;
+                } else {
+                    bail!("error while parsing Hydra status for {}", row.html());
+                }
+            };
+            if let Ok(span_status) = status.find("span") {
+                let span_status: String = span_status.text().collect();
+                let status = if span_status.trim() == "Queued" {
+                    "Queued: no build has been attempted for this package yet (still queued)"
+                        .to_string()
+                } else {
+                    format!("Unknown Hydra status: {span_status}")
+                };
+                builds.push(BuildStatus {
+                    icon: StatusIcon::Queued,
+                    status,
+                    ..Default::default()
+                });
+                continue;
+            }
+            let status = status.find("img")?.try_attr("title")?;
+            let build_id = build.find("a")?.text().collect();
+            let build_url = build.find("a")?.attr("href");
+            let timestamp = timestamp.find("time")?.attr("datetime");
+            let name = name.text().collect();
+            let job_name: String = job_name.text().collect();
+            let arch = arch.find("tt")?.text().collect();
+            let success = status == "Succeeded";
+            let icon = match (success, status) {
+                (true, _) => StatusIcon::Succeeded,
+                (false, "Cancelled") => StatusIcon::Cancelled,
+                (false, _) => StatusIcon::Failed,
+            };
+            let evals = true;
+            builds.push(BuildStatus {
+                icon,
+                success,
+                status: status.into(),
+                timestamp: timestamp.map(str::to_string),
+                build_id: Some(build_id),
+                build_url: build_url.map(str::to_string),
+                name: Some(name),
+                arch: Some(arch),
+                evals,
+                job_name: Some(job_name.trim().into()),
+            });
+        }
+        Ok(builds)
+    }
+
     fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "div#tabs-inputs") {
@@ -281,9 +350,17 @@ impl<'a> EvalDetails<'a> {
             vec![]
         });
 
+        let still_succeed = self
+            .parse_build_stats(&doc, "div#tabs-still-succeed")
+            .unwrap_or_else(|err| {
+                warn!("{}\n{}", err, err.backtrace());
+                vec![]
+            });
+
         Ok(Self {
             inputs,
             changes,
+            still_succeed,
             ..self
         })
     }
@@ -343,13 +420,17 @@ impl ResolvedArgs {
                 indexmap.insert(&stat.eval.spec, stat);
                 continue;
             }
-            for entry in stat.inputs {
+            for entry in &stat.inputs {
                 println!(""); // vertical separation
                 println!("{entry}");
             }
-            for entry in stat.changes {
+            for entry in &stat.changes {
                 println!(""); // vertical separation
                 println!("{entry}");
+            }
+            if !stat.still_succeed.is_empty() {
+                println!("");
+                println!("{}", stat.format_table(false, &stat.still_succeed));
             }
         }
         if self.json {
