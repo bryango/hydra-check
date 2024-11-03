@@ -55,7 +55,7 @@ trait FetchHydra: Sized + Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
-            .timeout(Duration::from_secs(20))
+            .timeout(Duration::from_secs(30))
             .build()?
             .get(self.get_url())
             .send()?
@@ -77,7 +77,11 @@ trait FetchHydra: Sized + Clone {
                 let status = if let Ok(alert) = doc.find("div.alert") {
                     alert.text().collect()
                 } else {
-                    format!("Unknown Hydra Error found at {}", self.get_url())
+                    format!(
+                        "Unknown Hydra Error with '{}' found at {}",
+                        selectors,
+                        self.get_url()
+                    )
                 };
                 // sanitize the text a little bit
                 let status: Vec<&str> = status.lines().map(str::trim).collect();
@@ -89,17 +93,16 @@ trait FetchHydra: Sized + Clone {
     }
 
     fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
-        let skipable = row
-            .find("td")?
-            .find("a")?
-            .try_attr("href")?
-            .ends_with("/all");
+        let link = row.find("td")?.find("a")?.try_attr("href")?;
+        let skipable = link.ends_with("/all") || link.contains("full=1");
         Ok(skipable)
     }
 
     fn format_table<T: FormatVecColored>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
-        table.load_preset(comfy_table::presets::NOTHING);
+        table
+            .load_preset(comfy_table::presets::NOTHING)
+            .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
         for entry in entries {
             table.add_row(entry.format_as_vec());
             if short {
