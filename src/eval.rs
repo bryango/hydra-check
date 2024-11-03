@@ -10,9 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
 
-use crate::{
-    args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon, TryAttr,
-};
+use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default, Debug)]
@@ -237,7 +235,7 @@ impl<'a> EvalDetails<'a> {
         &self,
         doc: &Html,
         selector: &str,
-        is_removed: bool,
+        is_removed: bool, // for removed jobs
     ) -> anyhow::Result<Vec<BuildStatus>> {
         let err = || {
             anyhow!(
@@ -250,81 +248,7 @@ impl<'a> EvalDetails<'a> {
             Err(stat) => bail!("{:?}", stat.inputs.first().ok_or_else(err)?.value),
             Ok(tbody) => tbody,
         };
-        let mut builds: Vec<BuildStatus> = Vec::new();
-        for row in tbody.find_all("tr") {
-            let columns = row.find_all("td");
-            if is_removed {
-                let [job_name, arch] = columns.as_slice() else {
-                    if Self::is_skipable_row(row)? {
-                        continue;
-                    } else {
-                        bail!("error while parsing Hydra status for {}", row.html());
-                    }
-                };
-                let build_url = job_name.find("a")?.attr("href");
-                let job_name: String = job_name.text().collect();
-                let arch = arch.find("tt")?.text().collect();
-                builds.push(BuildStatus {
-                    icon: StatusIcon::Warning,
-                    status: "Removed".into(),
-                    build_url: build_url.map(str::to_string),
-                    arch: Some(arch),
-                    job_name: Some(job_name.trim().into()),
-                    ..Default::default()
-                });
-                continue;
-            }
-            let [status, build, job_name, timestamp, name, arch] = columns.as_slice() else {
-                if Self::is_skipable_row(row)? {
-                    continue;
-                } else {
-                    bail!("error while parsing Hydra status for {}", row.html());
-                }
-            };
-            if let Ok(span_status) = status.find("span") {
-                let span_status: String = span_status.text().collect();
-                let status = if span_status.trim() == "Queued" {
-                    "Queued: no build has been attempted for this package yet (still queued)"
-                        .to_string()
-                } else {
-                    format!("Unknown Hydra status: {span_status}")
-                };
-                builds.push(BuildStatus {
-                    icon: StatusIcon::Queued,
-                    status,
-                    ..Default::default()
-                });
-                continue;
-            }
-            let status = status.find("img")?.try_attr("title")?;
-            let build_id = build.find("a")?.text().collect();
-            let build_url = build.find("a")?.attr("href");
-            let timestamp = timestamp.find("time").ok().and_then(|x| x.attr("datetime"));
-            let name = name.text().collect();
-            let job_name: String = job_name.text().collect();
-            let arch = arch.find("tt")?.text().collect();
-            let success = status == "Succeeded";
-            let icon = match (success, status) {
-                (true, _) => StatusIcon::Succeeded,
-                (false, "Cancelled") => StatusIcon::Cancelled,
-                (false, "Queued") => StatusIcon::Queued,
-                (false, _) => StatusIcon::Failed,
-            };
-            let evals = true;
-            builds.push(BuildStatus {
-                icon,
-                success,
-                status: status.into(),
-                timestamp: timestamp.map(str::to_string),
-                build_id: Some(build_id),
-                build_url: build_url.map(str::to_string),
-                name: Some(name),
-                arch: Some(arch),
-                evals,
-                job_name: Some(job_name.trim().into()),
-            });
-        }
-        Ok(builds)
+        BuildStatus::from_tbody(tbody, is_removed)
     }
 
     fn fetch_and_read(self) -> anyhow::Result<Self> {

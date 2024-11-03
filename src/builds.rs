@@ -1,7 +1,8 @@
-use anyhow::bail;
+use anyhow::{anyhow, bail};
 use colored::{ColoredString, Colorize};
 use indexmap::IndexMap;
 use log::warn;
+use scraper::ElementRef;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
@@ -58,6 +59,90 @@ impl FormatVecColored for BuildStatus {
     }
 }
 
+impl BuildStatus {
+    pub(crate) fn from_tbody(
+        tbody: ElementRef<'_>,
+        is_removed: bool, // for removed jobs
+    ) -> anyhow::Result<Vec<BuildStatus>> {
+        let mut builds: Vec<BuildStatus> = Vec::new();
+        for row in tbody.find_all("tr") {
+            let columns = row.find_all("td");
+            let err = || anyhow!("error while parsing build status from: {}", row.html());
+            if is_removed {
+                let [job_name, arch] = columns.as_slice() else {
+                    if PackageStatus::is_skipable_row(row)? {
+                        continue;
+                    } else {
+                        bail!(err())
+                    }
+                };
+                let build_url = job_name.find("a")?.attr("href");
+                let job_name: String = job_name.text().collect();
+                let arch = arch.find("tt")?.text().collect();
+                builds.push(BuildStatus {
+                    icon: StatusIcon::Warning,
+                    status: "Removed".into(),
+                    build_url: build_url.map(str::to_string),
+                    arch: Some(arch),
+                    job_name: Some(job_name.trim().into()),
+                    ..Default::default()
+                });
+                continue;
+            }
+            let [status, build, job_name, timestamp, name, arch] = columns.as_slice() else {
+                if PackageStatus::is_skipable_row(row)? {
+                    continue;
+                } else {
+                    bail!(err());
+                }
+            };
+            if let Ok(span_status) = status.find("span") {
+                let span_status: String = span_status.text().collect();
+                let status = if span_status.trim() == "Queued" {
+                    "Queued: no build has been attempted for this package yet (still queued)"
+                        .to_string()
+                } else {
+                    format!("Unknown Hydra status: {span_status}")
+                };
+                builds.push(BuildStatus {
+                    icon: StatusIcon::Queued,
+                    status,
+                    ..Default::default()
+                });
+                continue;
+            }
+            let status = status.find("img")?.try_attr("title")?;
+            let build_id = build.find("a")?.text().collect();
+            let build_url = build.find("a")?.attr("href");
+            let timestamp = timestamp.find("time").ok().and_then(|x| x.attr("datetime"));
+            let name = name.text().collect();
+            let job_name: String = job_name.text().collect();
+            let arch = arch.find("tt")?.text().collect();
+            let success = status == "Succeeded";
+            let icon = match (success, status) {
+                (true, _) => StatusIcon::Succeeded,
+                (false, "Cancelled") => StatusIcon::Cancelled,
+                (false, "Queued") => StatusIcon::Queued,
+                (false, _) => StatusIcon::Failed,
+            };
+            let evals = true;
+            builds.push(BuildStatus {
+                icon,
+                success,
+                status: status.into(),
+                timestamp: timestamp.map(str::to_string),
+                build_id: Some(build_id),
+                build_url: build_url.map(str::to_string),
+                name: Some(name),
+                arch: Some(arch),
+                evals,
+                job_name: Some(job_name.trim().into()),
+            });
+        }
+        Ok(builds)
+    }
+}
+
 #[derive(Clone)]
 /// Container for the build status and metadata of a package
 struct PackageStatus<'a> {
@@ -110,61 +195,7 @@ impl<'a> PackageStatus<'a> {
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
-        let mut builds: Vec<BuildStatus> = Vec::new();
-        for row in tbody.find_all("tr") {
-            let columns = row.find_all("td");
-            let [status, build, timestamp, name, arch] = columns.as_slice() else {
-                if Self::is_skipable_row(row)? {
-                    continue;
-                } else {
-                    bail!(
-                        "error while parsing Hydra status for package '{}': {}",
-                        self.package,
-                        row.html()
-                    );
-                }
-            };
-            if let Ok(span_status) = status.find("span") {
-                let span_status: String = span_status.text().collect();
-                let status = if span_status.trim() == "Queued" {
-                    "Queued: no build has been attempted for this package yet (still queued)"
-                        .to_string()
-                } else {
-                    format!("Unknown Hydra status: {span_status}")
-                };
-                builds.push(BuildStatus {
-                    icon: StatusIcon::Queued,
-                    status,
-                    ..Default::default()
-                });
-                continue;
-            }
-            let status = status.find("img")?.try_attr("title")?;
-            let build_id = build.find("a")?.text().collect();
-            let build_url = build.find("a")?.attr("href");
-            let timestamp = timestamp.find("time")?.attr("datetime");
-            let name = name.text().collect();
-            let arch = arch.find("tt")?.text().collect();
-            let success = status == "Succeeded";
-            let icon = match (success, status) {
-                (true, _) => StatusIcon::Succeeded,
-                (false, "Cancelled") => StatusIcon::Cancelled,
-                (false, _) => StatusIcon::Failed,
-            };
-            let evals = true;
-            builds.push(BuildStatus {
-                icon,
-                success,
-                status: status.into(),
-                timestamp: timestamp.map(str::to_string),
-                build_id: Some(build_id),
-                build_url: build_url.map(str::to_string),
-                name: Some(name),
-                arch: Some(arch),
-                evals,
-                job_name: None,
-            });
-        }
+        let builds = BuildStatus::from_tbody(tbody, false)?;
         Ok(Self { builds, ..self })
     }
 }
