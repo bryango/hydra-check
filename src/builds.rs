@@ -47,12 +47,13 @@ impl FormatVecColored for BuildStatus {
                 .unwrap_or_default()
                 .0
                 .into();
-            let build_url = self.build_url.clone().unwrap_or_default().dimmed();
-            &[name, timestamp, build_url]
+            &[name, timestamp]
         } else {
             &Default::default()
         };
         row.extend_from_slice(details);
+        let build_url = self.build_url.clone().unwrap_or_default().dimmed();
+        row.push(build_url);
         row
     }
 }
