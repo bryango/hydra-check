@@ -100,19 +100,19 @@ trait FetchHydra: Sized + Clone {
 
     fn format_table<T: FormatVecColored>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
-        table
-            .load_preset(comfy_table::presets::NOTHING)
-            .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
+        table.load_preset(comfy_table::presets::NOTHING);
+        // .set_content_arrangement(comfy_table::ContentArrangement::Dynamic);
         for entry in entries {
             table.add_row(entry.format_as_vec());
             if short {
                 break;
             }
         }
-        for column in table.column_iter_mut() {
-            column.set_padding((0, 1));
+        for (idx, column) in table.column_iter_mut().enumerate() {
+            if idx == 0 {
+                column.set_padding((0, 1));
+            }
             // column.set_constraint(comfy_table::ColumnConstraint::ContentWidth);
-            break; // only for the first column
         }
         table.trim_fmt()
     }

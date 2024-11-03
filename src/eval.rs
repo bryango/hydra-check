@@ -233,7 +233,12 @@ impl<'a> EvalDetails<'a> {
         Ok(input_changes)
     }
 
-    fn parse_build_stats(&self, doc: &Html, selector: &str) -> anyhow::Result<Vec<BuildStatus>> {
+    fn parse_build_stats(
+        &self,
+        doc: &Html,
+        selector: &str,
+        is_removed: bool,
+    ) -> anyhow::Result<Vec<BuildStatus>> {
         let err = || {
             anyhow!(
                 "could not parse the table of build stats '{:?}' in {}",
@@ -248,6 +253,27 @@ impl<'a> EvalDetails<'a> {
         let mut builds: Vec<BuildStatus> = Vec::new();
         for row in tbody.find_all("tr") {
             let columns = row.find_all("td");
+            if is_removed {
+                let [job_name, arch] = columns.as_slice() else {
+                    if Self::is_skipable_row(row)? {
+                        continue;
+                    } else {
+                        bail!("error while parsing Hydra status for {}", row.html());
+                    }
+                };
+                let build_url = job_name.find("a")?.attr("href");
+                let job_name: String = job_name.text().collect();
+                let arch = arch.find("tt")?.text().collect();
+                builds.push(BuildStatus {
+                    icon: StatusIcon::Warning,
+                    status: "Removed".into(),
+                    build_url: build_url.map(str::to_string),
+                    arch: Some(arch),
+                    job_name: Some(job_name.trim().into()),
+                    ..Default::default()
+                });
+                continue;
+            }
             let [status, build, job_name, timestamp, name, arch] = columns.as_slice() else {
                 if Self::is_skipable_row(row)? {
                     continue;
@@ -273,7 +299,7 @@ impl<'a> EvalDetails<'a> {
             let status = status.find("img")?.try_attr("title")?;
             let build_id = build.find("a")?.text().collect();
             let build_url = build.find("a")?.attr("href");
-            let timestamp = timestamp.find("time")?.attr("datetime");
+            let timestamp = timestamp.find("time").ok().and_then(|x| x.attr("datetime"));
             let name = name.text().collect();
             let job_name: String = job_name.text().collect();
             let arch = arch.find("tt")?.text().collect();
@@ -281,6 +307,7 @@ impl<'a> EvalDetails<'a> {
             let icon = match (success, status) {
                 (true, _) => StatusIcon::Succeeded,
                 (false, "Cancelled") => StatusIcon::Cancelled,
+                (false, "Queued") => StatusIcon::Queued,
                 (false, _) => StatusIcon::Failed,
             };
             let evals = true;
@@ -322,11 +349,6 @@ impl<'a> EvalDetails<'a> {
                 .collect();
             let [name, input_type, value, revision, store_path] = columns.as_slice() else {
                 if let Ok(true) = Self::is_skipable_row(row) {
-                    info!(
-                        "{}; for more information, please visit: {}",
-                        "it appears that the result is truncated",
-                        self.get_url()
-                    );
                     continue;
                 } else {
                     bail!(
@@ -350,17 +372,38 @@ impl<'a> EvalDetails<'a> {
             vec![]
         });
 
-        let still_succeed = self
-            .parse_build_stats(&doc, "div#tabs-still-succeed")
-            .unwrap_or_else(|err| {
-                warn!("{}\n{}", err, err.backtrace());
-                vec![]
+        let [aborted, now_fail, now_succeed, new, removed, still_fail, still_succeed, unfinished] =
+            [
+                "aborted",
+                "now-fail",
+                "now-succeed",
+                "new",
+                "removed",
+                "still-fail",
+                "still-succeed",
+                "unfinished",
+            ]
+            .map(|selector| {
+                let is_removed = selector == "removed";
+                let selector = format!("div#tabs-{selector}");
+                self.parse_build_stats(&doc, &selector, is_removed)
+                    .unwrap_or_else(|err| {
+                        warn!("{}\n{}", err, err.backtrace());
+                        vec![]
+                    })
             });
 
         Ok(Self {
             inputs,
             changes,
+            aborted,
+            now_fail,
+            now_succeed,
+            new,
+            removed,
+            still_fail,
             still_succeed,
+            unfinished,
             ..self
         })
     }
@@ -428,9 +471,24 @@ impl ResolvedArgs {
                 println!(""); // vertical separation
                 println!("{entry}");
             }
-            if !stat.still_succeed.is_empty() {
-                println!("");
-                println!("{}", stat.format_table(false, &stat.still_succeed));
+            if self.short {
+                continue;
+            }
+            for (build_stats, prompt) in [
+                (&stat.aborted, "Aborted / Timed out:".bold()),
+                (&stat.now_fail, "Newly Failing:".bold()),
+                (&stat.now_succeed, "Newly Succeeding:".bold()),
+                (&stat.new, "New Jobs:".bold()),
+                (&stat.removed, "Removed Jobs:".bold()),
+                (&stat.still_fail, "Still Failing:".bold()),
+                (&stat.still_succeed, "Still Succeeding:".bold()),
+                (&stat.unfinished, "Queued Jobs:".bold()),
+            ] {
+                if !build_stats.is_empty() {
+                    println!("");
+                    println!("{}", prompt);
+                    println!("{}", stat.format_table(false, build_stats));
+                }
             }
         }
         if self.json {
