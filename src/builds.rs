@@ -63,8 +63,8 @@ impl BuildStatus {
     pub(crate) fn from_tbody(
         tbody: ElementRef<'_>,
         is_removed: bool, // for removed jobs
-    ) -> anyhow::Result<Vec<BuildStatus>> {
-        let mut builds: Vec<BuildStatus> = Vec::new();
+    ) -> anyhow::Result<Vec<Self>> {
+        let mut builds = Vec::new();
         for row in tbody.find_all("tr") {
             let columns = row.find_all("td");
             let err = || anyhow!("error while parsing build status from: {}", row.html());

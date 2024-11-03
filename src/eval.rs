@@ -84,66 +84,8 @@ impl Display for EvalInputChanges {
     }
 }
 
-#[derive(Serialize, Clone)]
-struct EvalDetails<'a> {
-    #[serde(flatten)]
-    eval: &'a Evaluation,
-    url: String,
-    inputs: Vec<EvalInput>,
-    changes: Vec<EvalInputChanges>,
-    aborted: Vec<BuildStatus>,
-    now_fail: Vec<BuildStatus>,
-    now_succeed: Vec<BuildStatus>,
-    new: Vec<BuildStatus>,
-    removed: Vec<BuildStatus>,
-    still_fail: Vec<BuildStatus>,
-    still_succeed: Vec<BuildStatus>,
-    unfinished: Vec<BuildStatus>,
-}
-
-impl FetchHydra for EvalDetails<'_> {
-    fn get_url(&self) -> &str {
-        &self.url
-    }
-
-    fn finish_with_error(self, status: String) -> Self {
-        Self {
-            inputs: vec![EvalInput {
-                name: Some(StatusIcon::Warning.to_string()),
-                value: Some(status),
-                ..Default::default()
-            }],
-            ..self
-        }
-    }
-}
-
-impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
-    fn from(eval: &'a Evaluation) -> Self {
-        let url = format!("https://hydra.nixos.org/eval/{}", eval.id);
-        let url = match &eval.filter {
-            Some(x) => format!("{url}?filter={x}"),
-            None => url,
-        };
-        Self {
-            eval,
-            url,
-            inputs: vec![],
-            changes: vec![],
-            aborted: vec![],
-            now_fail: vec![],
-            now_succeed: vec![],
-            new: vec![],
-            removed: vec![],
-            still_fail: vec![],
-            still_succeed: vec![],
-            unfinished: vec![],
-        }
-    }
-}
-
-impl<'a> EvalDetails<'a> {
-    fn parse_input_changes(doc: &Html) -> anyhow::Result<Vec<EvalInputChanges>> {
+impl EvalInputChanges {
+    fn from_html(doc: &Html) -> anyhow::Result<Vec<Self>> {
         let tables = doc.find_all("div#tabs-inputs table");
         let err = || {
             anyhow!(
@@ -230,7 +172,67 @@ impl<'a> EvalDetails<'a> {
         }
         Ok(input_changes)
     }
+}
 
+#[derive(Serialize, Clone)]
+struct EvalDetails<'a> {
+    #[serde(flatten)]
+    eval: &'a Evaluation,
+    url: String,
+    inputs: Vec<EvalInput>,
+    changes: Vec<EvalInputChanges>,
+    aborted: Vec<BuildStatus>,
+    now_fail: Vec<BuildStatus>,
+    now_succeed: Vec<BuildStatus>,
+    new: Vec<BuildStatus>,
+    removed: Vec<BuildStatus>,
+    still_fail: Vec<BuildStatus>,
+    still_succeed: Vec<BuildStatus>,
+    unfinished: Vec<BuildStatus>,
+}
+
+impl FetchHydra for EvalDetails<'_> {
+    fn get_url(&self) -> &str {
+        &self.url
+    }
+
+    fn finish_with_error(self, status: String) -> Self {
+        Self {
+            inputs: vec![EvalInput {
+                name: Some(StatusIcon::Warning.to_string()),
+                value: Some(status),
+                ..Default::default()
+            }],
+            ..self
+        }
+    }
+}
+
+impl<'a> From<&'a Evaluation> for EvalDetails<'a> {
+    fn from(eval: &'a Evaluation) -> Self {
+        let url = format!("https://hydra.nixos.org/eval/{}", eval.id);
+        let url = match &eval.filter {
+            Some(x) => format!("{url}?filter={x}"),
+            None => url,
+        };
+        Self {
+            eval,
+            url,
+            inputs: vec![],
+            changes: vec![],
+            aborted: vec![],
+            now_fail: vec![],
+            now_succeed: vec![],
+            new: vec![],
+            removed: vec![],
+            still_fail: vec![],
+            still_succeed: vec![],
+            unfinished: vec![],
+        }
+    }
+}
+
+impl<'a> EvalDetails<'a> {
     fn parse_build_stats(
         &self,
         doc: &Html,
@@ -291,7 +293,7 @@ impl<'a> EvalDetails<'a> {
             });
         }
 
-        let changes = Self::parse_input_changes(&doc).unwrap_or_else(|err| {
+        let changes = EvalInputChanges::from_html(&doc).unwrap_or_else(|err| {
             warn!("{}\n{}", err, err.backtrace());
             vec![]
         });
