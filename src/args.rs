@@ -1,71 +1,13 @@
 use clap::{arg, command, Parser};
 use flexi_logger::Logger;
-use log::{debug, error, info, warn};
+use log::{debug, error, warn};
 use regex::Regex;
-use serde::Serialize;
 use std::{
     env::consts::{ARCH, OS},
     path::Path,
 };
 
-use crate::{constants, log_format, NixpkgsChannelVersion};
-
-#[derive(Debug, Clone, Serialize)]
-pub(crate) struct Evaluation {
-    #[serde(skip)]
-    pub(crate) spec: String,
-    pub(crate) id: u64,
-    pub(crate) filter: Option<String>,
-}
-
-impl Evaluation {
-    pub(crate) fn guess_from_spec(spec: &str) -> Self {
-        let mut spec = spec.splitn(2, "/");
-        let id = spec.next().unwrap();
-        let id = match id.parse() {
-            Ok(id) => id,
-            Err(err) => {
-                error!(
-                    "evaluations must be identified by a number {} {} '{}': {}",
-                    "(slash an optional filter), e.g. '1809585/coreutils'.",
-                    "Instead we get",
-                    id,
-                    err
-                );
-                std::process::exit(1);
-            }
-        };
-        let filter = match spec.next() {
-            None => {
-                let default = constants::DEFAULT_EVALUATION_FILTER.to_string();
-                info!(
-                    "{}, so the default filter '/{default}' is used {}",
-                    "no package filter has been specified", "for better performance"
-                );
-                info!(
-                    "specify another filter with --eval '{}', {}: '{}'\n",
-                    format!("{id}/<filter>"),
-                    "or force an empty filter with a trailing slash",
-                    format!("{id}/")
-                );
-                Some(default)
-            }
-            Some(x) if x.trim().is_empty() => None,
-            Some(x) => Some(x.into()),
-        };
-        Self {
-            spec: format!(
-                "{id}{}",
-                match &filter {
-                    Some(x) => format!("/{x}"),
-                    None => "".into(),
-                }
-            ),
-            id,
-            filter,
-        }
-    }
-}
+use crate::{constants, log_format, Evaluation, NixpkgsChannelVersion};
 
 #[derive(Debug, Clone)]
 pub(crate) enum Queries {

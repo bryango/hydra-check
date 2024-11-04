@@ -1,22 +1,22 @@
 mod args;
-mod builds;
 pub mod constants;
-mod eval;
 mod fetch_stable;
-mod jobset;
+mod queries;
 mod soup;
+mod structs;
 
 use std::time::Duration;
 
 pub use args::Cli;
 use args::ResolvedArgs;
-use builds::BuildStatus;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 pub use fetch_stable::NixpkgsChannelVersion;
+use queries::packages::BuildStatus;
 use scraper::{ElementRef, Html};
 use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};
+use structs::eval::Evaluation;
 
 #[derive(SerializeDisplay, Debug, Clone, Default)]
 enum StatusIcon {

@@ -10,7 +10,7 @@ use serde::Serialize;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
 
-use crate::{args::Evaluation, BuildStatus, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
+use crate::{BuildStatus, Evaluation, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default, Debug)]
