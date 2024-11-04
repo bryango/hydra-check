@@ -29,3 +29,9 @@ impl std::fmt::Display for StatusIcon {
         write!(f, "{icon}")
     }
 }
+
+#[test]
+fn serialize_success_icon() {
+    let success_icon = serde_json::to_string(&StatusIcon::Succeeded).unwrap();
+    debug_assert_eq!(success_icon, r#""✔""#)
+}

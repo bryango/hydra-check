@@ -1,7 +1,11 @@
-use std::fmt::Debug;
+//! Convenient extensions for the querying interface of [`scraper`]
+
+#[doc(inline)]
+pub use scraper;
 
 use anyhow::anyhow;
 use scraper::{selectable::Selectable, ElementRef, Html, Selector};
+use std::fmt::Debug;
 
 /// A simple wrapper trait that provides the `find` and `find_all` methods
 /// to [`scraper`]'s [`Selectable`] elements, inspired by the interface of

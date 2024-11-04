@@ -2,7 +2,7 @@
 
 ![Test](https://github.com/nix-community/hydra-check/workflows/Test/badge.svg)
 
-check hydra for the build status of a package in a given channel.
+Check hydra for the build status of a package in a given channel.
 
 # Disclaimer
 Keep in mind that hydra is the NixOS build-farm orchestrator and has more important tasks to do than answering your puny requests. Response time may be in the seconds for each request.

@@ -1,7 +1,7 @@
-use hydra_check::Cli;
+use hydra_check::HydraCheckCli;
 
 fn main() -> anyhow::Result<()> {
-    let success = Cli::execute()?;
+    let success = HydraCheckCli::execute()?;
     if !success {
         std::process::exit(1);
     }

@@ -1,20 +1,25 @@
+#![warn(missing_docs)]
+#![doc = include_str!("../README.md")]
+
 mod args;
-pub mod constants;
 mod fetch_stable;
 mod queries;
-mod soup;
 mod structs;
 
-use std::time::Duration;
+pub mod constants;
+pub mod soup;
 
-pub use args::Cli;
+pub use args::HydraCheckCli;
+pub use fetch_stable::NixpkgsChannelVersion;
+
 use args::ResolvedArgs;
+use soup::{SoupFind, TryAttr};
+use structs::{BuildStatus, Evaluation, StatusIcon};
+
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
-pub use fetch_stable::NixpkgsChannelVersion;
 use scraper::{ElementRef, Html};
-pub use soup::{SoupFind, TryAttr};
-use structs::{BuildStatus, Evaluation, StatusIcon};
+use std::time::Duration;
 
 trait FormatVecColored {
     fn format_as_vec(&self) -> Vec<ColoredString>;
@@ -100,10 +105,4 @@ fn log_format(
     };
     let level = format!("{level}:").to_lowercase().color(color).bold();
     write!(w, "{} {}", level, &record.args())
-}
-
-#[test]
-fn serialize_success_icon() {
-    let success_icon = serde_json::to_string(&StatusIcon::Succeeded).unwrap();
-    debug_assert_eq!(success_icon, r#""✔""#)
 }
