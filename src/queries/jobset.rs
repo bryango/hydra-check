@@ -4,15 +4,17 @@ use indexmap::IndexMap;
 use serde::Serialize;
 use serde_with::skip_serializing_none;
 
-use crate::{FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, TryAttr};
+use crate::{
+    is_skipable_row, FetchHydra, FormatVecColored, ResolvedArgs, SoupFind, StatusIcon, TryAttr,
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single evaluation, can be serialized to a JSON entry
-pub(crate) struct EvalStatus {
+struct EvalStatus {
     icon: StatusIcon,
     finished: Option<bool>,
-    pub(crate) id: Option<u64>,
+    id: Option<u64>,
     url: Option<String>,
     datetime: Option<String>,
     relative: Option<String>,
@@ -75,11 +77,11 @@ impl FormatVecColored for EvalStatus {
 
 #[derive(Clone)]
 /// Container for the eval status and metadata of a jobset
-pub(crate) struct JobsetStatus<'a> {
+struct JobsetStatus<'a> {
     jobset: &'a str,
     url: String,
     /// Status of recent evaluations of the jobset
-    pub(crate) evals: Vec<EvalStatus>,
+    evals: Vec<EvalStatus>,
 }
 
 impl FetchHydra for JobsetStatus<'_> {
@@ -115,7 +117,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
 }
 
 impl<'a> JobsetStatus<'a> {
-    pub(crate) fn fetch_and_read(self) -> anyhow::Result<Self> {
+    fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
         let tbody = match self.find_tbody(&doc, "") {
             Err(stat) => return Ok(stat),
@@ -127,7 +129,7 @@ impl<'a> JobsetStatus<'a> {
             let [eval_id, timestamp, input_changes, succeeded, failed, queued, delta] =
                 columns.as_slice()
             else {
-                if Self::is_skipable_row(row)? {
+                if is_skipable_row(row)? {
                     continue;
                 } else {
                     bail!(

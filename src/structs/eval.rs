@@ -3,7 +3,9 @@ use serde::Serialize;
 
 use crate::constants;
 
-/// Specification for a single Hydra evaluation, with an optional filter
+/// Specification for a single Hydra evaluation, with an optional filter.
+/// Should only be constructed with [`Evaluation::guess_from_spec`]
+/// to ensure a correct [`Evaluation::spec`], thus marked [`non_exhaustive`].
 #[non_exhaustive]
 #[derive(Debug, Clone, Serialize)]
 pub(crate) struct Evaluation {

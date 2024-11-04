@@ -12,40 +12,9 @@ use args::ResolvedArgs;
 use colored::{ColoredString, Colorize};
 use comfy_table::Table;
 pub use fetch_stable::NixpkgsChannelVersion;
-use queries::packages::BuildStatus;
 use scraper::{ElementRef, Html};
-use serde_with::SerializeDisplay;
 pub use soup::{SoupFind, TryAttr};
-use structs::eval::Evaluation;
-
-#[derive(SerializeDisplay, Debug, Clone, Default)]
-enum StatusIcon {
-    Succeeded,
-    Failed,
-    Cancelled,
-    Queued,
-    #[default]
-    Warning,
-}
-
-impl From<&StatusIcon> for ColoredString {
-    fn from(icon: &StatusIcon) -> Self {
-        match icon {
-            StatusIcon::Succeeded => "✔".green(),
-            StatusIcon::Failed => "✖".red(),
-            StatusIcon::Cancelled => "⏹".red(),
-            StatusIcon::Queued => "⧖".yellow(),
-            StatusIcon::Warning => "⚠".yellow(),
-        }
-    }
-}
-
-impl std::fmt::Display for StatusIcon {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let icon = ColoredString::from(self).normal();
-        write!(f, "{icon}")
-    }
-}
+use structs::{BuildStatus, Evaluation, StatusIcon};
 
 trait FormatVecColored {
     fn format_as_vec(&self) -> Vec<ColoredString>;
@@ -92,12 +61,6 @@ trait FetchHydra: Sized + Clone {
         }
     }
 
-    fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
-        let link = row.find("td")?.find("a")?.try_attr("href")?;
-        let skipable = link.ends_with("/all") || link.contains("full=1");
-        Ok(skipable)
-    }
-
     fn format_table<T: FormatVecColored>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
@@ -116,6 +79,12 @@ trait FetchHydra: Sized + Clone {
         }
         table.trim_fmt()
     }
+}
+
+fn is_skipable_row(row: ElementRef<'_>) -> anyhow::Result<bool> {
+    let link = row.find("td")?.find("a")?.try_attr("href")?;
+    let skipable = link.ends_with("/all") || link.contains("full=1");
+    Ok(skipable)
 }
 
 fn log_format(

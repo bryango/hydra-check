@@ -10,7 +10,9 @@ use serde::Serialize;
 use serde_json::Value;
 use serde_with::skip_serializing_none;
 
-use crate::{BuildStatus, Evaluation, FetchHydra, ResolvedArgs, SoupFind, StatusIcon};
+use crate::{
+    is_skipable_row, BuildStatus, Evaluation, FetchHydra, ResolvedArgs, SoupFind, StatusIcon,
+};
 
 #[skip_serializing_none]
 #[derive(Serialize, Clone, Default, Debug)]
@@ -274,7 +276,7 @@ impl<'a> EvalDetails<'a> {
                 })
                 .collect();
             let [name, input_type, value, revision, store_path] = columns.as_slice() else {
-                if let Ok(true) = Self::is_skipable_row(row) {
+                if let Ok(true) = is_skipable_row(row) {
                     continue;
                 } else {
                     bail!(
