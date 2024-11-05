@@ -25,7 +25,7 @@ trait FormatVecColored {
     fn format_as_vec(&self) -> Vec<ColoredString>;
 }
 
-trait FetchHydra: Sized + Clone {
+trait FetchHydra: Clone {
     fn get_url(&self) -> &str;
     fn fetch_document(&self) -> anyhow::Result<Html> {
         let document = reqwest::blocking::Client::builder()
