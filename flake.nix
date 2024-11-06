@@ -24,6 +24,7 @@
         devShells.default = self.packages.${system}.hydra-check.overrideAttrs ({ nativeBuildInputs, ... }: {
           nativeBuildInputs = with pkgs.buildPackages; [
             cargo # with shell completions, instead of cargo-auditable
+            cargo-insta # for updating insta snapshots
           ] ++ nativeBuildInputs;
 
           env = with pkgs.buildPackages; {
