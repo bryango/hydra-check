@@ -66,7 +66,7 @@ impl Evaluation {
 }
 
 #[test]
-fn eval_guess_from_spec() {
+fn guess_eval_from_spec() {
     let default_filter = constants::DEFAULT_EVALUATION_FILTER.into();
     for (spec, id, filter) in [
         ("123456", 123456, Some(default_filter)),

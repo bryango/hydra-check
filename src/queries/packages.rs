@@ -1,3 +1,6 @@
+//! A module that formats the details of the specified (or inferred) packages,
+//! e.g. from https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux.
+
 use colored::Colorize;
 use indexmap::IndexMap;
 use log::warn;

@@ -1,3 +1,6 @@
+//! A module that formats the details of the specified (or inferred) jobset,
+//! from an url like: https://hydra.nixos.org/jobset/nixpkgs/trunk/evals.
+
 use anyhow::bail;
 use colored::{ColoredString, Colorize};
 use indexmap::IndexMap;
@@ -105,7 +108,6 @@ impl<'a> From<&'a ResolvedArgs> for JobsetStatus<'a> {
     fn from(args: &'a ResolvedArgs) -> Self {
         //
         // https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
-        // https://hydra.nixos.org/eval/1809297
         //
         let url = format!("https://hydra.nixos.org/jobset/{}/evals", args.jobset);
         Self {

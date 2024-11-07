@@ -1,3 +1,10 @@
+//! A module that formats the details of one (or multiple) evaluation(s),
+//! from urls such as https://hydra.nixos.org/eval/1809808.
+//!
+//! This is a long pile of spaghetti that serves a single purpose.
+//! Splitting it into separate modules would also be clumsy as we then need
+//! to add a bunch of `pub(super)` identifiers to the various data structures.
+
 use anyhow::{anyhow, bail};
 use colored::Colorize;
 use indexmap::IndexMap;

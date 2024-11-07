@@ -30,8 +30,13 @@ impl std::fmt::Display for StatusIcon {
     }
 }
 
+#[cfg(test)]
+use insta::assert_snapshot;
+
 #[test]
-fn serialize_success_icon() {
+fn serialize_and_colorize_icons() {
     let success_icon = serde_json::to_string(&StatusIcon::Succeeded).unwrap();
-    debug_assert_eq!(success_icon, r#""✔""#)
+    debug_assert_eq!(success_icon, r#""✔""#);
+    let colored_icon = ColoredString::from(&StatusIcon::Queued);
+    assert_snapshot!(colored_icon.to_string(), @"[33m⧖[0m");
 }
