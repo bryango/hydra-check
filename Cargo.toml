@@ -7,7 +7,7 @@ edition = "2021"
 [dependencies]
 anyhow = "1.0.89"
 clap = { version = "4.5.20", features = ["derive"] }
-clap_complete = "4.5.37"
+clap_complete = { version = "4.5.37", features = ["unstable-dynamic"] }
 colored = "2.1.0"
 comfy-table = { version = "7.1.1", features = ["custom_styling"] }
 flexi_logger = "0.29.3"

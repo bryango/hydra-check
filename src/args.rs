@@ -1,5 +1,5 @@
 use clap::{arg, command, value_parser, CommandFactory, Parser};
-use clap_complete::Shell;
+use clap_complete::{ArgValueCandidates, CompletionCandidate, Shell};
 use flexi_logger::Logger;
 use log::{debug, error, warn};
 use regex::Regex;
@@ -15,6 +15,18 @@ pub(crate) enum Queries {
     Jobset,
     Packages(Vec<String>),
     Evals(Vec<Evaluation>),
+}
+
+fn channel_candidates() -> Vec<CompletionCandidate> {
+    [
+        "nixpkgs-unstable",
+        "nixos-unstable",
+        "nixos-unstable-small",
+        "staging-next",
+        "stable",
+    ]
+    .map(CompletionCandidate::new)
+    .into()
 }
 
 #[derive(Parser, Debug, Default)]
@@ -61,7 +73,10 @@ pub struct HydraCheckCli {
     arch: Option<String>,
 
     /// Channel to check packages for
-    #[arg(short, long, default_value = "unstable")]
+    #[arg(
+        short, long, default_value = "unstable",
+        add = ArgValueCandidates::new(channel_candidates)
+    )]
     channel: String,
 
     /// Specify jobset to check packages for
