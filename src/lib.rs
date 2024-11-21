@@ -8,6 +8,7 @@ mod structs;
 
 pub mod constants;
 pub mod soup;
+pub mod testing;
 
 pub use args::HydraCheckCli;
 pub use fetch_stable::NixpkgsChannelVersion;
