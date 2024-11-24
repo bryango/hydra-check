@@ -24,6 +24,7 @@ serde_with = "3.11.0"
 duct = "0.13.7"
 faketty-lib = "2.0.18"
 insta = "1.41.1"
+portable-pty = "0.8.1"
 trycmd = "0.15.8"
 
 [profile.dev.package]
