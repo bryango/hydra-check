@@ -24,6 +24,7 @@ serde_with = "3.11.0"
 duct = "0.13.7"
 faketty-lib = "2.0.18"
 insta = "1.41.1"
+term-transcript = { version = "0.3.0", features = ["portable-pty"] }
 trycmd = "0.15.8"
 
 [profile.dev.package]

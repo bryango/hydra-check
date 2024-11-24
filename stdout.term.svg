@@ -1,0 +1,81 @@
+<!-- Created with term-transcript v0.3.0 (https://github.com/slowli/term-transcript) -->
+<svg viewBox="0 0 1024 426" width="1024" height="426" xmlns="http://www.w3.org/2000/svg">
+  <switch>
+    <g requiredExtensions="http://www.w3.org/1999/xhtml">
+      <style>
+        .container {
+          padding: 0 10px;
+          color: #cccccc;
+          line-height: 18px;
+        }
+        .container pre {
+          padding: 0;
+          margin: 0;
+          font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace;
+          line-height: inherit;
+        }
+        .input {
+          margin: 0 -10px 6px;
+          color: #cccccc;
+          background: rgba(255, 255, 255, 0.1);
+          padding: 2px 10px;
+        }
+        .input-hidden { display: none; }
+        .output { margin-bottom: 6px; }
+        .bold,.prompt { font-weight: bold; }
+        .italic { font-style: italic; }
+        .underline { text-decoration: underline; }
+        .dimmed { opacity: 0.7; }
+        .fg0 { color: #010101; } .bg0 { background: #010101; }
+        .fg1 { color: #de382b; } .bg1 { background: #de382b; }
+        .fg2 { color: #38b54a; } .bg2 { background: #38b54a; }
+        .fg3 { color: #ffc706; } .bg3 { background: #ffc706; }
+        .fg4 { color: #006fb8; } .bg4 { background: #006fb8; }
+        .fg5 { color: #762671; } .bg5 { background: #762671; }
+        .fg6 { color: #2cb5e9; } .bg6 { background: #2cb5e9; }
+        .fg7 { color: #cccccc; } .bg7 { background: #cccccc; }
+        .fg8 { color: #808080; } .bg8 { background: #808080; }
+        .fg9 { color: #ff0000; } .bg9 { background: #ff0000; }
+        .fg10 { color: #00ff00; } .bg10 { background: #00ff00; }
+        .fg11 { color: #ffff00; } .bg11 { background: #ffff00; }
+        .fg12 { color: #0000ff; } .bg12 { background: #0000ff; }
+        .fg13 { color: #ff00ff; } .bg13 { background: #ff00ff; }
+        .fg14 { color: #00ffff; } .bg14 { background: #00ffff; }
+        .fg15 { color: #ffffff; } .bg15 { background: #ffffff; }
+      </style>
+      <rect width="100%" height="100%" y="0" rx="4.5" style="fill: #010101;" />
+      <svg x="0" y="10" width="1024" height="406" viewBox="0 0 1024 406">
+        <foreignObject width="1024" height="406">
+          <div xmlns="http://www.w3.org/1999/xhtml" class="container">
+            <div class="input"><pre><span class="prompt">$</span> hydra-check</pre></div>
+            <div class="output"><pre>Evaluations of jobset <span class="bold">nixpkgs/trunk</span> <span class="dimmed">@ https://hydra.nixos.org/jobset/nixpkgs/trunk/evals</span>
+<span class="fg3">⧖</span> nixpkgs → 14aa5dc  3h ago      <span class="fg2">✔</span> 239625  <span class="fg1">✖</span> 3873  <span class="bold fg3">⧖</span><span class="bold"> 10724</span>  Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810123</span>
+<span class="fg3">⧖</span> nixpkgs → 4238856  12h ago     <span class="fg2">✔</span> 240309  <span class="fg1">✖</span> 3921  <span class="bold fg3">⧖</span><span class="bold"> 9999</span>   Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810118</span>
+<span class="fg3">⧖</span> nixpkgs → c26faf0  21h ago     <span class="fg2">✔</span> 241806  <span class="fg1">✖</span> 4244  <span class="bold fg3">⧖</span><span class="bold"> 8147</span>   Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810114</span>
+<span class="fg3">⧖</span> nixpkgs → d440628  1d ago      <span class="fg2">✔</span> 242867  <span class="fg1">✖</span> 4852  <span class="bold fg3">⧖</span><span class="bold"> 6384</span>   Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810108</span>
+<span class="fg3">⧖</span> nixpkgs → 72f6884  1d ago      <span class="fg2">✔</span> 243270  <span class="fg1">✖</span> 4954  <span class="bold fg3">⧖</span><span class="bold"> 5868</span>   Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810105</span>
+<span class="fg3">⧖</span> nixpkgs → 67fd9cc  1d ago      <span class="fg2">✔</span> 245528  <span class="fg1">✖</span> 6817  <span class="bold fg3">⧖</span><span class="bold"> 1661</span>   Δ ~     <span class="dimmed">https://hydra.nixos.org/eval/1810097</span>
+<span class="fg2">✔</span> nixpkgs → 8edf06b  2d ago      <span class="fg2">✔</span> 248515  <span class="fg1">✖</span> 5735  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+104</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810089</span>
+<span class="fg2">✔</span> nixpkgs → eb2872e  2d ago      <span class="fg2">✔</span> 248411  <span class="fg1">✖</span> 5765  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+114</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810083</span>
+<span class="fg2">✔</span> nixpkgs → 96ae446  3d ago      <span class="fg2">✔</span> 248297  <span class="fg1">✖</span> 5819  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+10</span>   <span class="dimmed">https://hydra.nixos.org/eval/1810079</span>
+<span class="fg2">✔</span> nixpkgs → e34e6cb  3d ago      <span class="fg2">✔</span> 248287  <span class="fg1">✖</span> 5813  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+206</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810075</span>
+<span class="fg2">✔</span> nixpkgs → d774cc7  3d ago      <span class="fg2">✔</span> 248081  <span class="fg1">✖</span> 5814  <span class="fg3">⧖</span> 0      Δ <span class="fg1">-36</span>   <span class="dimmed">https://hydra.nixos.org/eval/1810064</span>
+<span class="fg2">✔</span> nixpkgs → 4f9c49e  4d ago      <span class="fg2">✔</span> 248117  <span class="fg1">✖</span> 5774  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+65</span>   <span class="dimmed">https://hydra.nixos.org/eval/1810058</span>
+<span class="fg2">✔</span> nixpkgs → 45573a3  4d ago      <span class="fg2">✔</span> 248052  <span class="fg1">✖</span> 5809  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+136</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810050</span>
+<span class="fg2">✔</span> nixpkgs → f8b656d  4d ago      <span class="fg2">✔</span> 247916  <span class="fg1">✖</span> 5952  <span class="fg3">⧖</span> 0      Δ <span class="fg1">-20</span>   <span class="dimmed">https://hydra.nixos.org/eval/1810041</span>
+<span class="fg2">✔</span> nixpkgs → f818c4a  5d ago      <span class="fg2">✔</span> 247936  <span class="fg1">✖</span> 5888  <span class="fg3">⧖</span> 0      Δ <span class="fg1">-268</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810036</span>
+<span class="fg2">✔</span> nixpkgs → 462a897  5d ago      <span class="fg2">✔</span> 248204  <span class="fg1">✖</span> 5609  <span class="fg3">⧖</span> 0      Δ <span class="fg1">-116</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810027</span>
+<span class="fg2">✔</span> nixpkgs → 10343b0  6d ago      <span class="fg2">✔</span> 248320  <span class="fg1">✖</span> 5287  <span class="fg3">⧖</span> 0      Δ <span class="fg1">-141</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810017</span>
+<span class="fg2">✔</span> nixpkgs → 5083ec8  6d ago      <span class="fg2">✔</span> 248461  <span class="fg1">✖</span> 5138  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+272</span>  <span class="dimmed">https://hydra.nixos.org/eval/1810006</span>
+<span class="fg2">✔</span> nixpkgs → 0a14706  2024-11-17  <span class="fg2">✔</span> 248189  <span class="fg1">✖</span> 5286  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+7</span>    <span class="dimmed">https://hydra.nixos.org/eval/1809995</span>
+<span class="fg2">✔</span> nixpkgs → f9aa610  2024-11-16  <span class="fg2">✔</span> 248182  <span class="fg1">✖</span> 5289  <span class="fg3">⧖</span> 0      Δ <span class="fg2">+89</span>   <span class="dimmed">https://hydra.nixos.org/eval/1809990</span></pre></div>
+          </div>
+        </foreignObject>
+      </svg>
+    </g>
+    <text x="10" y="18" style="font: 14px SFMono-Regular, Consolas, Liberation Mono, Menlo, monospace; fill: #de382b;">
+      HTML embedding not supported.
+      Consult <tspan style="text-decoration: underline; text-decoration-thickness: 1px;"><a href="https://github.com/slowli/term-transcript/blob/HEAD/FAQ.md">term-transcript docs</a></tspan> for details.
+    </text>
+  </switch>
+</svg>
