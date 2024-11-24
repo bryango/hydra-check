@@ -21,9 +21,15 @@ serde_json = "1.0.132"
 serde_with = "3.11.0"
 
 [dev-dependencies]
+duct = "0.13.7"
+faketty-lib = "2.0.18"
 insta = "1.41.1"
 trycmd = "0.15.8"
 
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
+
+[[example]]
+name = "utils"
+crate-type = ["lib"]
