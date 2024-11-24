@@ -7,3 +7,11 @@ fn main() -> anyhow::Result<()> {
     }
     Ok(())
 }
+
+/// Updates console examples in README automatically,
+/// if the environment variable `TRYCMD=overwrite`.
+#[test]
+#[ignore = "require internet connection, and not reproducible"]
+fn trycmd() {
+    trycmd::TestCases::new().case("README.md");
+}
