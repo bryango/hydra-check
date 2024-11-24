@@ -121,3 +121,10 @@ fn log_format(
     let level = format!("{level}:").to_lowercase().color(color).bold();
     write!(w, "{} {}", level, &record.args())
 }
+
+/// Example libraries, exposed only for tests
+#[cfg(test)]
+#[path = "../examples"]
+pub mod examples {
+    pub mod utils;
+}
