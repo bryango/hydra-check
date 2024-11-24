@@ -22,6 +22,7 @@ serde_with = "3.11.0"
 
 [dev-dependencies]
 insta = "1.41.1"
+trycmd = "0.15.8"
 
 [profile.dev.package]
 insta.opt-level = 3
