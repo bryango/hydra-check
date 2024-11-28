@@ -54,7 +54,7 @@ fn faketty_run(args: &str) -> anyhow::Result<String> {
 /// when `do_assert = true`, otherwise returns an empty string.
 pub fn maybe_run_hydra_check(do_assert: bool, args: &str) -> anyhow::Result<String> {
     if do_assert {
-        faketty_run(&args)
+        faketty_run(args)
     } else {
         Ok("".into())
     }
@@ -67,6 +67,7 @@ macro_rules! hydra_check {
     ($args:expr, do_assert = $do_assert:expr, @$snapshot:literal $(,)?) => {
         {
             let output = $crate::utils::maybe_run_hydra_check($do_assert, $args)?;
+            #[allow(clippy::needless_raw_string_hashes)]
             let output = inline_snapshot!($do_assert, output, @$snapshot);
             println!("{}", output);
         }
