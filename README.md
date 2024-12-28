@@ -12,121 +12,119 @@ Keep in mind that hydra is the NixOS build-farm orchestrator and has more import
 ```console
 $ nix-shell
 
+$ hydra-check -h
+Check hydra.nixos.org for build status of packages
+
+Usage: hydra-check [OPTIONS] [PACKAGES]...
+
+Arguments:
+  [PACKAGES]...  
+...
+
 $ hydra-check --help
-usage: hydra-check [options] PACKAGES...
+Check hydra.nixos.org for build status of packages
+
+Channels can be:
+  - unstable      - alias for nixos/trunk-combined (for NixOS) or nixpkgs/trunk
+  - master        - alias for nixpkgs/trunk (Default for other architectures)
+  - staging-next  - alias for nixpkgs/staging-next
+  - 24.11         - alias for nixos/release-24.11
 ...
 
 $ hydra-check
 Evaluations of jobset nixpkgs/trunk @ https://hydra.nixos.org/jobset/nixpkgs/trunk/evals
-⧖ nixpkgs → df76cd6  5h ago      ✔ 194306  ✖ 3554   ⧖ 55364  Δ ?       https://hydra.nixos.org/eval/1809865
-⧖ nixpkgs → 7701a9e  14h ago     ✔ 196874  ✖ 5123   ⧖ 51253  Δ ?       https://hydra.nixos.org/eval/1809859
-⧖ nixpkgs → 7150b43  23h ago     ✔ 200232  ✖ 48388  ⧖ 4629   Δ ?       https://hydra.nixos.org/eval/1809854
-⧖ nixpkgs → ed1b999  1d ago      ✔ 200402  ✖ 48482  ⧖ 4319   Δ ?       https://hydra.nixos.org/eval/1809850
-⧖ nixpkgs → b651050  1d ago      ✔ 244082  ✖ 6187   ⧖ 2813   Δ ?       https://hydra.nixos.org/eval/1809840
-✔ nixpkgs → 85f7e66  2d ago      ✔ 246713  ✖ 5963   ⧖ 0      Δ +67     https://hydra.nixos.org/eval/1809829
-✔ nixpkgs → fe348e1  2d ago      ✔ 246646  ✖ 6015   ⧖ 0      Δ +276    https://hydra.nixos.org/eval/1809822
+⧖ nixpkgs → 9e09ce2  4h ago   ✔ 236021  ✖ 11574  ⧖ 7658  Δ ~      https://hydra.nixos.org/eval/1810735
+⧖ nixpkgs → 33ec844  13h ago  ✔ 237618  ✖ 11623  ⧖ 6009  Δ ~      https://hydra.nixos.org/eval/1810729
+⧖ nixpkgs → 581fd65  22h ago  ✔ 242549  ✖ 12400  ⧖ 296   Δ ~      https://hydra.nixos.org/eval/1810721
+✔ nixpkgs → 7cc0bff  1d ago   ✔ 242782  ✖ 12467  ⧖ 0     Δ +129   https://hydra.nixos.org/eval/1810715
+✔ nixpkgs → efd9668  1d ago   ✔ 242653  ✖ 12600  ⧖ 0     Δ +174   https://hydra.nixos.org/eval/1810710
 ...
 
 $ hydra-check hello
-Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/trunk-combined
-✔ hello-2.10 from 2020-03-14 - https://hydra.nixos.org/build/114752982
+Build Status for hello.x86_64-linux on jobset nixpkgs/trunk
+https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-linux
+✔  hello-2.12.1  2024-12-23  https://hydra.nixos.org/build/282851413
+✔  hello-2.12.1  2024-12-03  https://hydra.nixos.org/build/280858326
+...
 
 $ hydra-check hello --arch x86_64-darwin
 Build Status for hello.x86_64-darwin on jobset nixpkgs/trunk
-✔ hello-2.12.1 from 2023-09-28 - https://hydra.nixos.org/build/236635446
-
-$ hydra-check hello python --channel 19.03
-Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/19.03
-✔ hello-2.10 from 2019-10-14 - https://hydra.nixos.org/build/103243113
-Build Status for nixpkgs.python.x86_64-linux on jobset nixos/19.03
-✔ python-2.7.17 from 2020-01-14 - https://hydra.nixos.org/build/110523905
-
-$ hydra-check nixos.tests.installer.simpleUefiGrub --channel 19.09 --arch aarch64-linux
-Build Status for nixos.tests.installer.simpleUefiGrub.aarch64-linux on jobset nixos/19.09
-✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-19 - https://hydra.nixos.org/build/115139363
-
-Last Builds:
-✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115135183
-✖ (Dependency failed) vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115093440
-✔ vm-test-run-installer-simpleUefiGrub from 2020-03-18 - https://hydra.nixos.org/build/115073926
-✔ vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/115013869
-✖ (Cancelled) vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/114921818
-✔ vm-test-run-installer-simpleUefiGrub from 2020-03-17 - https://hydra.nixos.org/build/114887664
-✖ (Timed out) vm-test-run-installer-simpleUefiGrub from 2020-03-16 - https://hydra.nixos.org/build/114881668
+https://hydra.nixos.org/job/nixpkgs/trunk/hello.x86_64-darwin
+✔  hello-2.12.1  2024-12-23  https://hydra.nixos.org/build/282846204
+✔  hello-2.12.1  2024-12-03  https://hydra.nixos.org/build/281028527
 ...
 
+$ hydra-check hello python3 --channel 23.05
+Build Status for nixpkgs.hello.x86_64-linux on jobset nixos/release-23.05
+https://hydra.nixos.org/job/nixos/release-23.05/nixpkgs.hello.x86_64-linux
+✔  hello-2.12.1  2023-12-31  https://hydra.nixos.org/build/245248169
+...
 
-$ hydra-check ugarit --channel 19.09 --short
-Build Status for nixpkgs.ugarit.x86_64-linux on jobset nixos/19.09
-✖ (Dependency failed) chicken-ugarit-2.0 from 2020-02-23 - https://hydra.nixos.org/build/108216732
+Build Status for nixpkgs.python3.x86_64-linux on jobset nixos/release-23.05
+https://hydra.nixos.org/job/nixos/release-23.05/nixpkgs.python3.x86_64-linux
+✔  python3-3.10.13  2023-12-31  https://hydra.nixos.org/build/245266443
+...
 
+$ hydra-check nixos.tests.installer.simpleUefiGrub --channel 23.05 --arch aarch64-linux
+Build Status for nixos.tests.installer.simpleUefiGrub.aarch64-linux on jobset nixos/release-23.05
+https://hydra.nixos.org/job/nixos/release-23.05/nixos.tests.installer.simpleUefiGrub.aarch64-linux
+✔              vm-test-run-installer-simpleUefiGrub  2024-01-05  https://hydra.nixos.org/build/245743824
+...
 
-$ hydra-check nixos.containerTarball hello --channel 19.09 --arch i686-linux --json | jq .
+$ hydra-check ugarit --channel 23.05 --short
+Build Status for nixpkgs.ugarit.x86_64-linux on jobset nixos/release-23.05
+✔  chicken-ugarit-2.0  2023-12-31  https://hydra.nixos.org/build/245243604
+
+$ hydra-check nixos.containerTarball hello --channel 23.05 --json
 {
-  "nixos.containerTarball": [
+  "nixos.containerTarball.x86_64-linux": [
     {
-      "icon": "✖",
-      "success": false,
-      "status": "Failed",
-      "timestamp": "2020-03-18T22:02:59Z",
-      "build_id": "115099119",
-      "build_url": "https://hydra.nixos.org/build/115099119",
+      "icon": "✔",
+      "success": true,
+      "status": "Succeeded",
+      "timestamp": "2024-01-06T21:43:41Z",
+      "build_id": "245747935",
+      "build_url": "https://hydra.nixos.org/build/245747935",
       "name": "tarball",
-      "arch": "i686-linux"
+      "arch": "x86_64-linux",
+      "evals": true
     },
-    {
-      "icon": "✖",
-      "success": false,
-      "status": "Failed",
-      "timestamp": "2020-03-17T18:10:09Z",
-      "build_id": "115073178",
-      "build_url": "https://hydra.nixos.org/build/115073178",
-      "name": "tarball",
-      "arch": "i686-linux"
-    },
-    ...
+...
   ],
-    "hello": [
+  "nixpkgs.hello.x86_64-linux": [
     {
       "icon": "✔",
       "success": true,
       "status": "Succeeded",
-      "timestamp": "2017-07-31T13:28:03Z",
-      "build_id": "57619684",
-      "build_url": "https://hydra.nixos.org/build/57619684",
-      "name": "hello-2.10",
-      "arch": "i686-linux"
+      "timestamp": "2023-12-31T21:34:50Z",
+      "build_id": "245248169",
+      "build_url": "https://hydra.nixos.org/build/245248169",
+      "name": "hello-2.12.1",
+      "arch": "x86_64-linux",
+      "evals": true
     },
-    {
-      "icon": "✔",
-      "success": true,
-      "status": "Succeeded",
-      "timestamp": "2017-07-25T03:36:27Z",
-      "build_id": "56997384",
-      "build_url": "https://hydra.nixos.org/build/56997384",
-      "name": "hello-2.10",
-      "arch": "i686-linux"
-    },
-    ...
+...
   ]
 }
 
 $ hydra-check --channel=staging-next --eval
+info: no package filter has been specified, so the default filter '/nixVersions.stable' is used for better performance
+info: specify another filter with --eval '<id>/<filter>', or force an empty filter with a trailing slash '/'
+
 info: querying the latest evaluation of --jobset 'nixpkgs/staging-next'
 
 Evaluations of jobset nixpkgs/staging-next @ https://hydra.nixos.org/jobset/nixpkgs/staging-next/evals
-⧖ nixpkgs → b2a0e31  1d ago  ✔ 42294  ✖ 2447  ⧖ 208458  Δ +18066  https://hydra.nixos.org/eval/1809845
+✔ nixpkgs → 94e324b  5d ago      ✔ 240490  ✖ 14688   ⧖ 0  Δ +379     https://hydra.nixos.org/eval/1810647
+✔ nixpkgs → 93d9b27  6d ago      ✔ 240111  ✖ 14948   ⧖ 0  Δ +189     https://hydra.nixos.org/eval/1810617
+...
 
-info: no package filter has been specified, so the default filter '/nixVersions.stable' is used for better performance
-info: specify another filter with --eval '1809845/<filter>', or force an empty filter with a trailing slash: '1809845/'
-
-Evaluation 1809845 filtered by 'nixVersions.stable' @ https://hydra.nixos.org/eval/1809845?filter=nixVersions.stable
+Evaluation 1810647 filtered by 'nixVersions.stable' @ https://hydra.nixos.org/eval/1810647?filter=nixVersions.stable
 
 input: nixpkgs
 type: Git checkout
 value: https://github.com/NixOS/nixpkgs.git
-revision: b2a0e3125e8b373ee2d6480ebd3b8f5c20080796
-store_path: /nix/store/54adh6vxi8zf1vpxj2gagwajk3hcrd0x-source
+revision: 94e324b3937f6203b2271a61d8786646a3fb7ff8
+store_path: /nix/store/ppc41xk8ii2hsfm1acarbvsbqbcsyl6n-source
 
 input: officialRelease
 type: Boolean
@@ -137,15 +135,15 @@ type: Nix expression
 value: [ "x86_64-linux" "aarch64-linux" "x86_64-darwin" "aarch64-darwin" ]
 
 changed_input: nixpkgs
-changes: 20741966793c to b2a0e3125e8b
-url: https://hydra.nixos.org/api/scmdiff?type=git&rev2=b2a0e3125e8b373ee2d6480ebd3b8f5c20080796&branch=&rev1=20741966793c81f2322645d30bce95d37f63f545&uri=https%3A%2F%2Fgithub.com%2FNixOS%2Fnixpkgs.git
-revs: 20741966793c81f2322645d30bce95d37f63f545 -> b2a0e3125e8b373ee2d6480ebd3b8f5c20080796
+changes: 93d9b277f418 to 94e324b3937f
+url: https://hydra.nixos.org/api/scmdiff?rev1=93d9b277f4182eec56c90b7e16e8457d9eb303e4&type=git&uri=https%3A%2F%2Fgithub.com%2FNixOS%2Fnixpkgs.git&rev2=94e324b3937f6203b2271a61d8786646a3fb7ff8&branch=
+revs: 93d9b277f4182eec56c90b7e16e8457d9eb303e4 -> 94e324b3937f6203b2271a61d8786646a3fb7ff8
 
-Queued Jobs:
-⧖ (Queued)  nixVersions.stable.aarch64-darwin  nix-2.24.10              https://hydra.nixos.org/build/277949183
-⧖ (Queued)  nixVersions.stable.aarch64-linux   nix-2.24.10  2024-11-07  https://hydra.nixos.org/build/277629888
-⧖ (Queued)  nixVersions.stable.x86_64-darwin   nix-2.24.10              https://hydra.nixos.org/build/277948312
-⧖ (Queued)  nixVersions.stable.x86_64-linux    nix-2.24.10  2024-11-07  https://hydra.nixos.org/build/277560645
+Still Succeeding:
+✔  nixVersions.stable.aarch64-darwin  nix-2.24.11  2024-12-18  https://hydra.nixos.org/build/282268230
+✔  nixVersions.stable.aarch64-linux   nix-2.24.11  2024-12-17  https://hydra.nixos.org/build/282264935
+✔  nixVersions.stable.x86_64-darwin   nix-2.24.11  2024-12-21  https://hydra.nixos.org/build/282407544
+✔  nixVersions.stable.x86_64-linux    nix-2.24.11  2024-12-20  https://hydra.nixos.org/build/282408286
 
 ```
 
