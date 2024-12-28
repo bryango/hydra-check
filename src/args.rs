@@ -28,11 +28,11 @@ pub(crate) enum Queries {
 ///
 /// Check hydra.nixos.org for build status of packages
 ///
-/// Other channels can be:
+/// Channels can be:
 ///   - unstable      - alias for nixos/trunk-combined (for NixOS) or nixpkgs/trunk
 ///   - master        - alias for nixpkgs/trunk (Default for other architectures)
 ///   - staging-next  - alias for nixpkgs/staging-next
-///   - 24.05         - alias for nixos/release-24.05
+///   - 24.11         - alias for nixos/release-24.11
 ///
 /// Usually using the above as --channel arguments, should fit most usages.
 /// However, you can use a verbatim jobset name such as:
