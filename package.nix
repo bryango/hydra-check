@@ -3,6 +3,7 @@
   hydra-check,
   rustPlatform,
   versionCheckHook,
+  shortRev ? null,
 }:
 
 hydra-check.overrideAttrs (
@@ -12,7 +13,12 @@ hydra-check.overrideAttrs (
     ...
   }:
   {
-    version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
+    version =
+      let
+        packageVersion = with builtins; (fromTOML (readFile ./Cargo.toml)).package.version;
+        versionSuffix = if shortRev == null then "" else "-g${shortRev}";
+      in
+      "${packageVersion}${versionSuffix}";
 
     # `builtins.path` works well with lazy trees
     src = builtins.path {
