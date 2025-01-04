@@ -23,6 +23,9 @@ serde_with = { version = "3.11.0", default-features = false, features = ["macros
 [dev-dependencies]
 insta = "1.41.1"
 
+[build-dependencies]
+git2 = { version = "0.19.0", default-features = false }
+
 [profile.dev.package]
 insta.opt-level = 3
 similar.opt-level = 3
