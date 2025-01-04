@@ -12,7 +12,7 @@ hydra-check.overrideAttrs (
     ...
   }:
   {
-    version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
+    version = with builtins; (fromTOML (readFile ./Cargo.toml)).package.version;
 
     # `builtins.path` works well with lazy trees
     src = builtins.path {
