@@ -3,7 +3,8 @@
   hydra-check,
   rustPlatform,
   versionCheckHook,
-}:
+  flake ? { },
+}@args:
 
 hydra-check.overrideAttrs (
   {
@@ -12,10 +13,35 @@ hydra-check.overrideAttrs (
     ...
   }:
   {
-    version = (builtins.fromTOML (builtins.readFile ./Cargo.toml)).package.version;
+    version =
+      let
+        packageVersion = with builtins; (fromTOML (readFile ./Cargo.toml)).package.version;
+
+        # append git revision to the version string, if available
+        revSuffix =
+          if (flake ? dirtyShortRev) then
+            "-g${flake.dirtyShortRev}"
+          else if (flake ? shortRev) then
+            "-g${flake.shortRev}-unstable"
+          else
+            "-unstable";
+
+        # append last modified date to the version string, if available
+        dateSuffix = lib.optionalString (flake ? lastModifiedDate) (
+          let
+            inherit (builtins) substring;
+            inherit (flake) lastModifiedDate;
+            year = substring 0 4 lastModifiedDate;
+            month = substring 4 2 lastModifiedDate;
+            day = substring 6 2 lastModifiedDate;
+          in
+          "-${year}-${month}-${day}"
+        );
+      in
+      "${packageVersion}${revSuffix}${dateSuffix}";
 
     # `builtins.path` works well with lazy trees
-    src = builtins.path {
+    src = args.flake or builtins.path {
       name = "hydra-check-source";
       path = ./.;
     };
