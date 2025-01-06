@@ -54,6 +54,9 @@ hydra-check.overrideAttrs (
         name = "hydra-check-Cargo.lock";
         path = ./Cargo.lock;
       };
+      outputHashes = {
+        "trycmd-0.15.9" = "sha256-LskZORhkNstrVvI7N1LHExwxlEOmyaHVvhqHKTZlcsM=";
+      };
     };
 
     nativeInstallCheckInputs = nativeInstallCheckInputs ++ [
