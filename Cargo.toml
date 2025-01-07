@@ -22,6 +22,7 @@ serde_with = { version = "3.11.0", default-features = false, features = ["macros
 
 [dev-dependencies]
 insta = "1.41.1"
+serial_test = { version = "3.2.0", default-features = false }
 trycmd = { version = "0.15.9", git = "https://github.com/bryango/snapbox.git", branch = "feature" }
 
 [profile.dev.package]
