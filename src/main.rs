@@ -8,10 +8,14 @@ fn main() -> anyhow::Result<()> {
     Ok(())
 }
 
+#[cfg(test)]
+use serial_test::serial;
+
 /// Checks that console examples in README run successfully.
 /// Updates the outputs automatically if the environment variable
 /// `TRYCMD=overwrite`.
 #[test]
+#[serial]
 #[ignore = "require internet connection, and not reproducible"]
 fn trycmd() {
     let test_status = std::env::var("TRYCMD").is_err_and(|_| unsafe {
