@@ -45,3 +45,8 @@ single_match = "allow"
 single_match_else = "allow"
 missing_errors_doc = "allow"
 multiple_crate_versions = "allow"
+
+[build-dependencies]
+anyhow = "1.0.89"
+cargo-lock = "10.0.1"
+reqwest = { version = "0.12.8", features = ["blocking", "cookies", "gzip"] }

@@ -28,4 +28,73 @@ fn main() {
     };
 
     println!("cargo::rerun-if-env-changed=version");
+    println!("cargo::rerun-if-changed=Cargo.lock");
+
+    println!("{WARN}=auditing dependencies in Cargo.lock");
+    let Ok(lock_file) = cargo_lock::Lockfile::load("./Cargo.lock") else {
+        println!("{WARN}=failed to load Cargo.lock");
+        return;
+    };
+
+    let mut patches = std::collections::HashMap::new();
+    for pkg in lock_file
+        .packages
+        .into_iter()
+        .filter(|pkg| pkg.source.is_some())
+    {
+        use cargo_lock::package::{GitReference, SourceKind};
+
+        let src = pkg.source.unwrap();
+        match src.kind() {
+            SourceKind::Registry if src.is_default_registry() => {
+                continue; // skip, do not warn
+            }
+            SourceKind::Git(git_reference) => match pkg.name.as_str() {
+                "trycmd" | "snapbox" | "snapbox-macros" => {
+                    let ref_string = match git_reference {
+                        GitReference::Tag(s) | GitReference::Branch(s) | GitReference::Rev(s) => s,
+                        #[allow(unreachable_patterns)]
+                        _ => "",
+                    };
+                    let compare_url = format!(
+                        "{}/compare/{}",
+                        src.url().as_str().trim_end_matches(".git"),
+                        ref_string
+                    );
+                    println!("{WARN}=* {}@{}: {}", pkg.name, pkg.version, compare_url);
+                    let patch_url = format!("{compare_url}.patch");
+                    patches
+                        .entry(patch_url)
+                        .or_insert(format!("{}@{}", pkg.name, pkg.version));
+                    continue;
+                }
+                _ => {}
+            },
+            _ => {}
+        };
+        println!(
+            "{WARN}=? unknown source: {}@{}: {src}",
+            pkg.name, pkg.version
+        );
+    }
+
+    for (patch, pkg) in patches {
+        println!("{WARN}=saving diffs for the forked dependencies");
+        download_patch(&patch, &pkg).unwrap_or_else(|e| {
+            println!("{WARN}=failed to fetch patch: {e}");
+        });
+    }
+}
+
+fn download_patch(url: &str, pkg: &str) -> anyhow::Result<()> {
+    use std::fs;
+
+    let dir = "./patches";
+    let path = format!("{dir}/{pkg}.patch");
+    println!("{WARN}=* {path}: {url}");
+
+    let contents = reqwest::blocking::get(url)?.error_for_status()?.text()?;
+    fs::create_dir(dir).unwrap_or_default();
+    fs::write(&path, contents)?;
+    Ok(())
 }
