@@ -1,0 +1,158 @@
+From a0364f4ddf58867bf2ad21c92ba32d1bffa052c0 Mon Sep 17 00:00:00 2001
+From: Bryan Lai <bryanlais@gmail.com>
+Date: Sat, 4 Jan 2025 20:22:08 +0800
+Subject: [PATCH] feat(trycmd): test only exit stat w/ TRYCMD=status
+
+Also, bump the patch release number.
+---
+ Cargo.lock                  |  2 +-
+ crates/trycmd/Cargo.toml    |  2 +-
+ crates/trycmd/src/cases.rs  | 24 ++++++++++++++++++------
+ crates/trycmd/src/lib.rs    |  6 ++++++
+ crates/trycmd/src/runner.rs | 15 +++++++++++----
+ 5 files changed, 37 insertions(+), 12 deletions(-)
+
+diff --git a/Cargo.lock b/Cargo.lock
+index 56dc7729..5ca494a6 100644
+--- a/Cargo.lock
++++ b/Cargo.lock
+@@ -907,7 +907,7 @@ dependencies = [
+ 
+ [[package]]
+ name = "trycmd"
+-version = "0.15.8"
++version = "0.15.9"
+ dependencies = [
+  "anstream 0.6.14",
+  "automod",
+diff --git a/crates/trycmd/Cargo.toml b/crates/trycmd/Cargo.toml
+index 4763973b..bb80ae79 100644
+--- a/crates/trycmd/Cargo.toml
++++ b/crates/trycmd/Cargo.toml
+@@ -1,6 +1,6 @@
+ [package]
+ name = "trycmd"
+-version = "0.15.8"
++version = "0.15.9"
+ description = "Snapshot testing for a herd of CLI tests"
+ authors = ["Ed Page <eopage@gmail.com>"]
+ homepage = "https://github.com/assert-rs/trycmd"
+diff --git a/crates/trycmd/src/cases.rs b/crates/trycmd/src/cases.rs
+index 273309fb..7069080a 100644
+--- a/crates/trycmd/src/cases.rs
++++ b/crates/trycmd/src/cases.rs
+@@ -230,11 +230,23 @@ fn parse_include(args: impl IntoIterator<Item = std::ffi::OsString>) -> Option<V
+ }
+ 
+ fn parse_mode(var: Option<&std::ffi::OsStr>) -> crate::Mode {
+-    if var == Some(std::ffi::OsStr::new("overwrite")) {
+-        crate::Mode::Overwrite
+-    } else if var == Some(std::ffi::OsStr::new("dump")) {
+-        crate::Mode::Dump("dump".into())
+-    } else {
+-        crate::Mode::Fail
++    use crate::Mode;
++    match var {
++        // [`OsStr`] implements [`PartialEq<str>`] so we can compare it with
++        // [`&str`] directly:
++        Some(x) if x == "overwrite" => Mode::Overwrite,
++        Some(x) if x == "dump" => Mode::Dump("dump".into()),
++        Some(x) if x == "status" => Mode::OnlyStatus,
++        None => Mode::Fail,
++        Some(x) => {
++            #[allow(clippy::print_stderr)]
++            if !x.is_empty() {
++                eprintln!(
++                    "Unknown mode: TRYCMD={}, using the default mode",
++                    x.to_string_lossy()
++                );
++            }
++            Mode::Fail
++        }
+     }
+ }
+diff --git a/crates/trycmd/src/lib.rs b/crates/trycmd/src/lib.rs
+index 54d2aa32..e4c3e96e 100644
+--- a/crates/trycmd/src/lib.rs
++++ b/crates/trycmd/src/lib.rs
+@@ -63,6 +63,12 @@
+ //! ```
+ //! This will overwrite any existing `.stdout` and `.stderr` file in `tests/cmd`
+ //!
++//! To check only the exit status of tests (ignoring outputs), you can run:
++//! ```console
++//! $ TRYCMD=status cargo test --test cli_tests
++//! ```
++//! This may be useful if the command outputs are not reproducible.
++//!
+ //! To filter the tests to those with `name1`, `name2`, etc in their file names, you can run:
+ //! ```console
+ //! cargo test --test cli_tests -- cli_tests trycmd=name1 trycmd=name2...
+diff --git a/crates/trycmd/src/runner.rs b/crates/trycmd/src/runner.rs
+index 3f8f0eed..c5b59686 100644
+--- a/crates/trycmd/src/runner.rs
++++ b/crates/trycmd/src/runner.rs
+@@ -218,7 +218,7 @@ impl Case {
+                 step.expected_status = Some(crate::schema::CommandStatus::Skipped);
+             }
+ 
+-            let step_status = self.run_step(step, cwd.as_deref(), bins, &substitutions);
++            let step_status = self.run_step(step, cwd.as_deref(), mode, bins, &substitutions);
+             if fs_context.is_mutable() && step_status.is_err() && *mode == Mode::Fail {
+                 prior_step_failed = true;
+             }
+@@ -261,7 +261,7 @@ impl Case {
+                     }
+                 }
+             }
+-            Mode::Fail => {}
++            Mode::Fail | Mode::OnlyStatus => {}
+         }
+ 
+         if sequence.fs.sandbox() {
+@@ -305,6 +305,7 @@ impl Case {
+         &self,
+         step: &mut crate::schema::Step,
+         cwd: Option<&std::path::Path>,
++        mode: &Mode,
+         bins: &crate::BinRegistry,
+         substitutions: &snapbox::Redactions,
+     ) -> Result<Output, Output> {
+@@ -362,7 +363,10 @@ impl Case {
+ 
+         // For Mode::Dump's sake, allow running all
+         let output = self.validate_spawn(output, step.expected_status());
+-        let output = self.validate_streams(output, step, substitutions);
++        let output = match mode {
++            Mode::OnlyStatus => output,
++            _ => self.validate_streams(output, step, substitutions),
++        };
+ 
+         if output.is_ok() {
+             Ok(output)
+@@ -991,6 +995,8 @@ impl std::fmt::Display for FileStatus {
+ #[derive(Clone, Debug, PartialEq, Eq)]
+ pub(crate) enum Mode {
+     Fail,
++    /// Only validate the return statuses of the commands
++    OnlyStatus,
+     Overwrite,
+     Dump(std::path::PathBuf),
+ }
+@@ -999,6 +1005,7 @@ impl Mode {
+     pub(crate) fn initialize(&self) -> Result<(), std::io::Error> {
+         match self {
+             Self::Fail => {}
++            Self::OnlyStatus => {}
+             Self::Overwrite => {}
+             Self::Dump(root) => {
+                 std::fs::create_dir_all(root)?;
+@@ -1029,7 +1036,7 @@ fn fs_context(
+                 }
+                 Ok(context)
+             }
+-            Mode::Fail | Mode::Overwrite => {
++            Mode::Fail | Mode::Overwrite | Mode::OnlyStatus => {
+                 let mut context = snapbox::dir::DirRoot::mutable_temp()?;
+                 if let Some(cwd) = cwd {
+                     context = context.with_template(cwd)?;
