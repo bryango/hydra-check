@@ -20,7 +20,7 @@ jobs:
       with:
         nix_path: nixpkgs=channel:nixos-unstable
     - run: nix-build
-    - run: nix-shell --command 'echo $version' # set in package.nix
+    - run: nix-shell --pure --run 'echo $version' # set in package.nix
 
   flakes:
     env:
