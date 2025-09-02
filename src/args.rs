@@ -1,4 +1,4 @@
-use clap::{arg, command, value_parser, CommandFactory, Parser};
+use clap::{arg, builder::ArgPredicate, command, value_parser, CommandFactory, Parser};
 use clap_complete::Shell;
 use flexi_logger::Logger;
 use log::{debug, error, warn};
@@ -63,7 +63,11 @@ pub struct HydraCheckCli {
     short: bool,
 
     /// Fetch more entries if possible (might be slower)
-    #[arg(short, long, conflicts_with = "short")]
+    #[arg(
+        short,
+        long,
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
     more: bool,
 
     /// System architecture to check
@@ -83,8 +87,16 @@ pub struct HydraCheckCli {
     eval: bool,
 
     /// Query the release tests of the given channel (jobset)
-    #[arg(short, long, conflicts_with = "PACKAGES")]
-    release_tests: bool,
+    #[arg(
+        short, long, conflicts_with_all = ["PACKAGES", "eval"],
+        // --releases implies --tests
+        default_value_if("releases", ArgPredicate::IsPresent, "true")
+    )]
+    tests: bool,
+
+    /// Combine information from channel evals and release --tests
+    #[arg(short, long, conflicts_with_all = ["PACKAGES", "eval"])]
+    releases: bool,
 
     /// Print more debugging information
     #[arg(short, long)]
@@ -105,6 +117,8 @@ pub(crate) struct ResolvedArgs {
     pub(crate) json: bool,
     pub(crate) short: bool,
     pub(crate) more: bool,
+    pub(crate) releases: bool,
+    pub(crate) channel: Option<String>,
     pub(crate) jobset: String,
 }
 
@@ -267,7 +281,7 @@ impl HydraCheckCli {
     }
 
     fn guess_packages(&self) -> Vec<String> {
-        if self.release_tests {
+        if self.tests {
             let Some(ref jobset) = self.jobset else {
                 error!("--jobset is not properly set up or deduced");
                 std::process::exit(1);
@@ -369,7 +383,7 @@ impl HydraCheckCli {
         Logger::with(log_level).format(log_format).start()?;
         let args = args.guess_arch();
         let args = args.guess_jobset();
-        let queries = match (args.eval, !args.queries.is_empty() || args.release_tests) {
+        let queries = match (args.eval, !args.queries.is_empty() || args.tests) {
             (true, _) => Queries::Evals(args.guess_evals()),
             (_, true) => Queries::Packages(args.guess_packages()),
             (_, false) => Queries::Jobset,
@@ -380,6 +394,8 @@ impl HydraCheckCli {
             json: args.json,
             short: args.short,
             more: args.more,
+            releases: args.releases,
+            channel: args.channel,
             jobset: args
                 .jobset
                 .expect("jobset should be resolved by `guess_jobset()`"),
