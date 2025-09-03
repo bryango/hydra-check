@@ -141,7 +141,6 @@ impl ResolvedArgs {
                 let filter_eval = |eval: EvalStatus| {
                     let short_rev = eval.short_rev.as_deref().unwrap_or_default();
                     for index in 0..test_builds.len() {
-                        #[allow(clippy::redundant_else)]
                         if test_builds[index]
                             .name
                             .as_deref()
