@@ -14,6 +14,17 @@ use crate::{constants, set_up_logger, Evaluation, NixpkgsChannelVersion};
 
 const DEFAULT_CHANNEL: &str = "unstable";
 
+/// Additional zsh helper to complete packages
+const ZSH_COMPLETE_PACKAGES: &str = r"
+_hydra-check_packages() {
+    if nix-instantiate '<nixpkgs>' --eval --attr path &>/dev/null \
+    && whence _nix-common-options &>/dev/null; then
+        _nix-common-options
+        _nix_attr_paths 'import <nixpkgs>'
+    fi
+}
+";
+
 #[derive(Debug, Clone, Default)]
 pub(crate) enum Queries {
     Jobset,
@@ -351,8 +362,11 @@ impl HydraCheckCli {
             print!(
                 "{}",
                 match shell {
-                    // hack to provide channel completions for zsh
+                    // hack to provide extra completions for zsh
                     Shell::Zsh => {
+                        let completion_function_head = "_hydra-check() {";
+                        let complete_packages_helper =
+                            format!("{ZSH_COMPLETE_PACKAGES}\n{completion_function_head}");
                         let channel_options = format!(
                             "CHANNEL:({})",
                             [
@@ -369,6 +383,9 @@ impl HydraCheckCli {
                         completion_text
                             .replace("CHANNEL:_default", &channel_options)
                             .replace("ARCH:_default", &arch_options)
+                            .replace(completion_function_head, &complete_packages_helper)
+                            .replace("PACKAGES:_default", "PACKAGES:_hydra-check_packages")
+                        // ^ `_hydra-check_packages` defined in `ZSH_COMPLETE_PACKAGES`
                     }
                     _ => completion_text,
                 }
