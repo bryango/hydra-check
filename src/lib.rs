@@ -85,6 +85,11 @@ trait FetchHydraReport: Clone {
         }
     }
 
+    fn find_all_tbody<'a>(&self, doc: &'a Html, selector: &str) -> Vec<ElementRef<'a>> {
+        let selectors = format!("{selector} tbody");
+        doc.find_all(selectors.trim())
+    }
+
     fn format_table<T: ShowHydraStatus>(&self, short: bool, entries: &Vec<T>) -> String {
         let mut table = Table::new();
         table.load_preset(comfy_table::presets::NOTHING);
