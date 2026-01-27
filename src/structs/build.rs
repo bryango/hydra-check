@@ -6,6 +6,7 @@ use serde_with::skip_serializing_none;
 
 use crate::{is_skipable_row, ShowHydraStatus, SoupFind, StatusIcon, TryAttr};
 
+#[non_exhaustive]
 #[skip_serializing_none]
 #[derive(Serialize, Debug, Default, Clone)]
 /// Status of a single build attempt, can be serialized to a JSON entry
@@ -96,22 +97,21 @@ impl BuildStatus {
                     bail!("error while parsing build status from: {}", row.html());
                 }
             };
-            if let Ok(span_status) = status.find("span") {
+            let status = if let Ok(span_status) = status.find("span") {
                 let span_status: String = span_status.text().collect();
-                let status = if span_status.trim() == "Queued" {
-                    "Queued: no build has been attempted for this package yet (still queued)"
-                        .to_string()
+                if span_status.trim() == "Queued" {
+                    "Queued"
                 } else {
-                    format!("Unknown Hydra status: {span_status}")
-                };
-                builds.push(BuildStatus {
-                    icon: StatusIcon::Queued,
-                    status,
-                    ..Default::default()
-                });
-                continue;
-            }
-            let status = status.find("img")?.try_attr("title")?;
+                    builds.push(BuildStatus {
+                        icon: StatusIcon::Warning,
+                        status: format!("Unknown Hydra status: {span_status}"),
+                        ..Default::default()
+                    });
+                    continue;
+                }
+            } else {
+                status.find("img")?.try_attr("title")?
+            };
             let build_id = build.find("a")?.text().collect();
             let build_url = build.find("a")?.attr("href");
             let timestamp = timestamp.find("time").ok().and_then(|x| x.attr("datetime"));
