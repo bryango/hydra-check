@@ -71,7 +71,11 @@ impl<'a> PackageReport<'a> {
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
-        let builds = BuildStatus::from_tbody(tbody)?;
+        let mut builds = BuildStatus::from_tbody(tbody)?;
+        if let Some(next_tbody) = self.find_all_tbody(&doc, "").get(1) {
+            let queued = BuildStatus::from_tbody(*next_tbody)?;
+            builds.extend(queued);
+        }
         Ok(Self { builds, ..self })
     }
 }
