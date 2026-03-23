@@ -15,15 +15,20 @@ use crate::{constants, set_up_logger, Evaluation, NixpkgsChannelVersion};
 const DEFAULT_CHANNEL: &str = "unstable";
 
 /// Additional zsh helper to complete packages
-const ZSH_COMPLETE_PACKAGES: &str = r"
+const ZSH_COMPLETE_PACKAGES: &str = r#"
+_hydra_check_nixpkgs="if nix-instantiate '<nixpkgs>' --eval --attr path &>/dev/null; then
+    autoload -Uz _nix-common-options _nix_attr_paths
+    _nix-common-options
+    _nix_attr_paths 'import <nixpkgs>'
+fi"
+
 _hydra-check_packages() {
-    if nix-instantiate '<nixpkgs>' --eval --attr path &>/dev/null \
-    && whence _nix-common-options &>/dev/null; then
-        _nix-common-options
-        _nix_attr_paths 'import <nixpkgs>'
+    if [[ "${words[CURRENT]}" == -* ]]; then
+        return
     fi
+    eval "$_hydra_check_nixpkgs"
 }
-";
+"#;
 
 #[derive(Debug, Clone, Default)]
 pub(crate) enum Queries {
