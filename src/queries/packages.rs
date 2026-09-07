@@ -54,7 +54,7 @@ impl<'a> PackageReport<'a> {
         //
         let url = format!(
             "{}/job/{}/{package}{}",
-            &*constants::HYDRA_CHECK_HOST_URL,
+            *constants::HYDRA_CHECK_HOST_URL,
             args.jobset,
             if args.long { "/all" } else { "" }
         );
@@ -197,6 +197,12 @@ impl ResolvedArgs {
                     info!("latest build failed, check out: {url_dimmed}");
                 } else {
                     eprintln!("\n{}", "Links:".bold());
+                    if let Some(build_url) = first_stat.and_then(|stat| stat.build_url.as_deref()) {
+                        eprintln!(
+                            "{} (log for the failed build)",
+                            format!("🔗 {build_url}/log/raw").dimmed()
+                        );
+                    }
                     #[rustfmt::skip]
                     eprintln!(
                         "{} (all builds)",
@@ -217,6 +223,11 @@ impl ResolvedArgs {
 
                 let url = format!("{url_stripped}/latest-finished");
                 let build_report = BuildReport::from_url(&url).fetch_and_read()?;
+                if !self.short {
+                    if let Some(log_url) = build_report.log_url.as_deref() {
+                        println!("{}: {log_url}", "log".bold());
+                    }
+                }
                 for entry in &build_report.inputs {
                     if self.short {
                         if let (Some(name), Some(rev)) = (&entry.name, &entry.revision) {

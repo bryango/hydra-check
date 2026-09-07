@@ -41,7 +41,7 @@ impl<'a> From<&'a ResolvedArgs> for JobsetReport<'a> {
         //
         // https://hydra.nixos.org/jobset/nixpkgs/unstable/evals
         //
-        let url = format!("{}/jobset/{}/evals", &*HYDRA_CHECK_HOST_URL, args.jobset);
+        let url = format!("{}/jobset/{}/evals", *HYDRA_CHECK_HOST_URL, args.jobset);
         Self {
             jobset: &args.jobset,
             url,

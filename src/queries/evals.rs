@@ -212,7 +212,7 @@ impl FetchHydraReport for EvalReport<'_> {
 
 impl<'a> From<&'a Evaluation> for EvalReport<'a> {
     fn from(eval: &'a Evaluation) -> Self {
-        let mut url = format!("{}/eval/{}", &*HYDRA_CHECK_HOST_URL, eval.id);
+        let mut url = format!("{}/eval/{}", *HYDRA_CHECK_HOST_URL, eval.id);
         let mut filtered = false;
         if let Some(filter) = &eval.filter {
             url = format!("{url}?filter={filter}");

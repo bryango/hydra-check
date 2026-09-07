@@ -7,13 +7,15 @@
 
 use serde::Serialize;
 
-use crate::{EvalInput, FetchHydraReport, StatusIcon};
+use crate::{EvalInput, FetchHydraReport, SoupFind, StatusIcon};
 
 #[non_exhaustive]
+#[serde_with::skip_serializing_none]
 #[derive(Serialize, Clone)]
 pub(super) struct BuildReport {
     url: String,
     pub(super) inputs: Vec<EvalInput>,
+    pub(super) log_url: Option<String>,
 }
 
 impl FetchHydraReport for BuildReport {
@@ -38,17 +40,47 @@ impl BuildReport {
         Self {
             url: url.to_string(),
             inputs: vec![],
+            log_url: None,
         }
     }
 
     pub(super) fn fetch_and_read(self) -> anyhow::Result<Self> {
         let doc = self.fetch_document()?;
-        let tbody = match self.find_tbody(&doc, "div#tabs-buildinputs") {
+        let log_url = self
+            .find_tbody(&doc, "div#tabs-summary table.info-table")
+            .ok()
+            .and_then(|tbody| {
+                for row in tbody.find_all("tr") {
+                    let Ok(heading) = row.find("th") else {
+                        continue;
+                    };
+                    let heading: String = heading.text().collect();
+                    if !heading.trim().contains("Logfile:") {
+                        // we only care about the log file link for the moment
+                        // we may add more information in the future
+                        continue;
+                    }
+                    for link in row.find_all("a") {
+                        let label: String = link.text().collect();
+                        if label.trim() != "raw" {
+                            continue;
+                        }
+                        let Some(href) = link.attr("href") else {
+                            continue;
+                        };
+                        let url = reqwest::Url::parse(&self.url).ok()?.join(href).ok()?;
+                        return Some(url.to_string());
+                    }
+                }
+                None
+            });
+        let report = Self { log_url, ..self };
+        let tbody = match report.find_tbody(&doc, "div#tabs-buildinputs") {
             // inputs are essential information, so exit early if this fails:
             Err(stat) => return Ok(stat),
             Ok(tbody) => tbody,
         };
-        let inputs = EvalInput::from_tbody(tbody, &self.url)?;
-        Ok(Self { inputs, ..self })
+        let inputs = EvalInput::from_tbody(tbody, &report.url)?;
+        Ok(Self { inputs, ..report })
     }
 }
