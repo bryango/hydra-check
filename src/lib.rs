@@ -156,7 +156,7 @@ fn log_format(
         (!module.starts_with("hydra_check"))
             .then_some(format!("[{module}] "))
             .unwrap_or_default(),
-        &record.args()
+        record.args()
     )
 }
 

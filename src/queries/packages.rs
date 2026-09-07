@@ -54,7 +54,7 @@ impl<'a> PackageReport<'a> {
         //
         let url = format!(
             "{}/job/{}/{package}{}",
-            &*constants::HYDRA_CHECK_HOST_URL,
+            *constants::HYDRA_CHECK_HOST_URL,
             args.jobset,
             if args.long { "/all" } else { "" }
         );
